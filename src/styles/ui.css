@@ -1,0 +1,430 @@
+/* UI Overlay Styles for Elemelon Game */
+
+.ui-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 50;
+}
+
+.ui-element {
+    position: absolute;
+    pointer-events: auto;
+}
+
+/* Health Bar (Bottom Left) */
+.health-bar {
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 15px 20px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.health-hearts {
+    display: flex;
+    gap: 8px;
+}
+
+.heart {
+    font-size: 24px;
+    transition: all 0.3s ease;
+    filter: drop-shadow(0 0 5px rgba(255, 0, 0, 0.5));
+}
+
+.heart.full {
+    transform: scale(1);
+}
+
+.heart.empty {
+    opacity: 0.3;
+    filter: grayscale(100%);
+    transform: scale(0.8);
+}
+
+.heart.damaged {
+    animation: heartbeat 0.5s ease-in-out;
+}
+
+/* Tokens Display (Top Left) */
+.tokens {
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 12px 18px;
+    border-radius: 25px;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: white;
+}
+
+.token-icon {
+    font-size: 20px;
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
+    animation: tokenGlow 2s ease-in-out infinite;
+}
+
+#tokenCount {
+    font-size: 18px;
+    font-weight: bold;
+    color: #FFD700;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.8);
+}
+
+.token-label {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* Inventory (Bottom Center) */
+.inventory {
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.inventory-weapons {
+    display: flex;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 12px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.weapon-slot {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.weapon-slot:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+.weapon-slot.active {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.2);
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
+}
+
+.weapon-slot.empty .slot-number {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: bold;
+}
+
+.weapon-slot .weapon-icon {
+    font-size: 24px;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+}
+
+.inventory-consumables {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.consumable-slot {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.consumable-slot:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.consumable-slot .item-icon {
+    font-size: 16px;
+}
+
+.consumable-slot .item-count {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 10px;
+    color: white;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 1px 3px;
+    border-radius: 3px;
+    line-height: 1;
+}
+
+/* Minimap (Bottom Right) */
+.minimap {
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+#minimapCanvas {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#minimapCanvas:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.02);
+}
+
+.fullmap-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.fullmap-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Crosshair (Center) */
+.crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 60;
+}
+
+.crosshair-dot {
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.crosshair-lines {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.crosshair-lines .line {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+.crosshair-lines .horizontal {
+    width: 20px;
+    height: 1px;
+    top: 0;
+    left: -10px;
+}
+
+.crosshair-lines .vertical {
+    width: 1px;
+    height: 20px;
+    top: -10px;
+    left: 0;
+}
+
+/* Tooltip System */
+.tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 1000;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(5px);
+    white-space: nowrap;
+    transform: translateY(-100%);
+    margin-top: -5px;
+}
+
+.tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+/* Interaction Prompt */
+.interaction-prompt {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    animation: promptPulse 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* Quest Indicator */
+.quest-indicator {
+    position: absolute;
+    top: 100px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    backdrop-filter: blur(10px);
+    max-width: 300px;
+}
+
+.quest-indicator h3 {
+    color: #FFD700;
+    margin-bottom: 5px;
+    font-size: 16px;
+}
+
+.quest-indicator p {
+    font-size: 12px;
+    opacity: 0.9;
+    line-height: 1.4;
+}
+
+/* Animations */
+@keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+@keyframes tokenGlow {
+    0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6)); }
+    50% { filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.9)); }
+}
+
+@keyframes promptPulse {
+    0%, 100% { opacity: 0.7; transform: translateX(-50%) scale(1); }
+    50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .health-bar {
+        bottom: 10px;
+        left: 10px;
+        padding: 10px 15px;
+    }
+    
+    .heart {
+        font-size: 20px;
+    }
+    
+    .tokens {
+        top: 10px;
+        left: 10px;
+        padding: 8px 12px;
+    }
+    
+    .token-icon {
+        font-size: 16px;
+    }
+    
+    #tokenCount {
+        font-size: 14px;
+    }
+    
+    .token-label {
+        font-size: 12px;
+    }
+    
+    .inventory {
+        bottom: 10px;
+    }
+    
+    .weapon-slot {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .consumable-slot {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .minimap {
+        bottom: 10px;
+        right: 10px;
+        padding: 8px;
+    }
+    
+    #minimapCanvas {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .quest-indicator {
+        top: 80px;
+        left: 10px;
+        right: 10px;
+        max-width: none;
+    }
+}
