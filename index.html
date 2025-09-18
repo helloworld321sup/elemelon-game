@@ -156,28 +156,35 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/GLTFLoader.js"></script>
     
     <!-- Game Scripts -->
-    <script src="src/core/GameEngine.js"></script>
-    <script src="src/core/SceneManager.js"></script>
-    <script src="src/core/InputManager.js"></script>
-    <script src="src/core/AudioManager.js"></script>
-    <script src="src/core/SaveManager.js"></script>
-    
-    <script src="src/entities/Player.js"></script>
-    <script src="src/entities/NPC.js"></script>
-    <script src="src/entities/Enemy.js"></script>
-    
-    <script src="src/world/World.js"></script>
-    <script src="src/world/Temple.js"></script>
-    <script src="src/world/Shop.js"></script>
-    
-    <script src="src/ui/UIManager.js"></script>
-    <script src="src/ui/Inventory.js"></script>
-    <script src="src/ui/Minimap.js"></script>
-    
-    <script src="src/scenes/CutsceneManager.js"></script>
-    <script src="src/scenes/GameplayScene.js"></script>
-    
-    <script src="src/utils/Utils.js"></script>
-    <script src="src/Game.js"></script>
+    <script>
+        // Simple demo functionality until full game is implemented
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🍈 Elemelon Game Loading...');
+            
+            // Hide loading screen after 2 seconds and show main menu
+            setTimeout(() => {
+                document.getElementById('loadingScreen').classList.remove('active');
+                document.getElementById('mainMenu').classList.add('active');
+                console.log('🍈 Elemelon Demo Ready!');
+            }, 2000);
+            
+            // Add button functionality
+            document.getElementById('newGameBtn')?.addEventListener('click', () => {
+                alert('🍈 Welcome to Elemelon! Full game implementation coming soon...\n\nThis is the foundation for your 3D adventure game where you:\n• Escape the grey world\n• Collect elemental powers\n• Defeat temple bosses\n• Face Dr. Hegesh\n\nThe game structure is ready - now we build the gameplay!');
+            });
+            
+            document.getElementById('loadGameBtn')?.addEventListener('click', () => {
+                alert('💾 Save system ready! No saved games yet.');
+            });
+            
+            document.getElementById('settingsBtn')?.addEventListener('click', () => {
+                alert('⚙️ Settings menu coming soon!');
+            });
+            
+            document.getElementById('creditsBtn')?.addEventListener('click', () => {
+                alert('🎮 Elemelon Game\nCreated with Three.js\n\n🍈 Adventure awaits in the grey world!');
+            });
+        });
+    </script>
 </body>
 </html>
