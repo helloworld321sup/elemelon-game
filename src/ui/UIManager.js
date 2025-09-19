@@ -583,6 +583,110 @@ class UIManager {
         
         console.log('🖥️ UI Manager disposed');
     }
+    
+    setupInteractionSystem() {
+        // Setup interaction system for UI elements
+        console.log('🎮 Setting up interaction system...');
+        
+        // Setup main menu interactions
+        this.setupMainMenuInteractions();
+        
+        // Setup HUD interactions
+        this.setupHUDInteractions();
+        
+        // Setup pause menu interactions
+        this.setupPauseMenuInteractions();
+        
+        console.log('🎮 Interaction system setup complete');
+    }
+    
+    setupMainMenuInteractions() {
+        const startButton = document.getElementById('startButton');
+        const settingsButton = document.getElementById('settingsButton');
+        
+        if (startButton) {
+            startButton.addEventListener('click', () => {
+                this.game.startGame();
+            });
+        }
+        
+        if (settingsButton) {
+            settingsButton.addEventListener('click', () => {
+                this.showSettingsMenu();
+            });
+        }
+    }
+    
+    setupHUDInteractions() {
+        // Setup minimap click to fullscreen
+        const minimap = document.getElementById('minimap');
+        if (minimap) {
+            minimap.addEventListener('click', () => {
+                this.toggleFullscreenMap();
+            });
+        }
+        
+        // Setup inventory interactions
+        const inventorySlots = document.querySelectorAll('.inventory-slot');
+        inventorySlots.forEach((slot, index) => {
+            slot.addEventListener('click', () => {
+                this.handleInventorySlotClick(index);
+            });
+        });
+        
+        // Setup weapon slot interactions
+        const weaponSlots = document.querySelectorAll('.weapon-slot');
+        weaponSlots.forEach((slot, index) => {
+            slot.addEventListener('click', () => {
+                this.handleWeaponSlotClick(index);
+            });
+        });
+    }
+    
+    setupPauseMenuInteractions() {
+        const pauseMenu = document.getElementById('pauseMenu');
+        const resumeButton = document.getElementById('resumeButton');
+        const mainMenuButton = document.getElementById('mainMenuButton');
+        
+        if (resumeButton) {
+            resumeButton.addEventListener('click', () => {
+                this.game.resumeGame();
+            });
+        }
+        
+        if (mainMenuButton) {
+            mainMenuButton.addEventListener('click', () => {
+                this.game.returnToMainMenu();
+            });
+        }
+    }
+    
+    handleInventorySlotClick(slotIndex) {
+        // Handle inventory slot interactions
+        console.log(`Inventory slot ${slotIndex} clicked`);
+        // This would interact with the game's inventory system
+    }
+    
+    handleWeaponSlotClick(slotIndex) {
+        // Handle weapon slot interactions
+        console.log(`Weapon slot ${slotIndex} clicked`);
+        // This would switch the active weapon
+    }
+    
+    toggleFullscreenMap() {
+        // Toggle fullscreen minimap
+        console.log('Toggling fullscreen map');
+        const minimap = document.getElementById('minimap');
+        if (minimap) {
+            minimap.classList.toggle('fullscreen');
+        }
+    }
+    
+    showSettingsMenu() {
+        // Show settings menu
+        console.log('Showing settings menu');
+        // This would open the settings overlay
+    }
 }
 
 // Export for module usage
