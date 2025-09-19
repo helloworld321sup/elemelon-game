@@ -325,6 +325,24 @@ class Minimap {
     }
     
     drawWorldElements(ctx, isFullMap) {
+        // First draw the actual terrain heightmap
+        this.drawTerrainHeightmap(ctx, isFullMap);
+        
+        // Then draw rock formations and natural features
+        this.drawRockFormations(ctx, isFullMap);
+        
+        // Draw grass patches
+        this.drawGrassPatches(ctx, isFullMap);
+        
+        // Draw stone paths
+        this.drawStonePaths(ctx, isFullMap);
+        
+        // Draw natural structures (pagodas, arches, mountains)
+        this.drawNaturalStructures(ctx, isFullMap);
+        
+        // Draw special landmarks
+        this.drawLandmarks(ctx, isFullMap);
+        
         // Draw temples
         this.mapElements.temples.forEach(temple => {
             this.drawTemple(ctx, temple, isFullMap);
@@ -355,6 +373,244 @@ class Minimap {
         this.mapElements.interestPoints.forEach(point => {
             this.drawInterestPoint(ctx, point, isFullMap);
         });
+    }
+    
+    // Terrain rendering methods
+    drawTerrainHeightmap(ctx, isFullMap) {
+        const canvas = isFullMap ? this.fullMapCanvas : this.minimapCanvas;
+        const scale = isFullMap ? this.fullMapScale : this.worldScale;
+        const resolution = isFullMap ? 4 : 8; // Higher resolution for full map
+        
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const worldSize = 1000; // Match terrain size
+        
+        // Draw terrain heightmap with color-coded elevations
+        for (let x = -worldSize; x < worldSize; x += resolution) {
+            for (let z = -worldSize; z < worldSize; z += resolution) {
+                // Get terrain height using same formula as game
+                const height = this.getTerrainHeight(x, z);
+                
+                // Convert world coordinates to screen coordinates
+                const screenX = centerX + (x * scale);
+                const screenY = centerY + (z * scale);
+                
+                // Skip if outside canvas
+                if (screenX < 0 || screenX >= canvas.width || screenY < 0 || screenY >= canvas.height) {
+                    continue;
+                }
+                
+                // Color based on height (grey world)
+                const normalizedHeight = (height + 25) / 50; // Normalize -25 to 25 range to 0-1
+                const greyValue = Math.floor(60 + normalizedHeight * 40); // 60-100 grey range
+                const color = `rgb(${greyValue}, ${greyValue}, ${greyValue})`;
+                
+                ctx.fillStyle = color;
+                ctx.fillRect(screenX, screenY, resolution, resolution);
+            }
+        }
+    }
+    
+    getTerrainHeight(x, z) {
+        // Same formula as terrain generation
+        const scale1 = 0.02;
+        const scale2 = 0.05;
+        const scale3 = 0.1;
+        
+        const height1 = Math.sin(x * scale1) * Math.cos(z * scale1) * 15;
+        const height2 = Math.sin(x * scale2) * Math.cos(z * scale2) * 8;
+        const height3 = Math.sin(x * scale3) * Math.cos(z * scale3) * 3;
+        
+        return height1 + height2 + height3;
+    }
+    
+    drawRockFormations(ctx, isFullMap) {
+        const scale = isFullMap ? this.fullMapScale : this.worldScale;
+        const rockCount = 150; // Match SceneManager rock count
+        
+        // Generate same rock positions as SceneManager
+        for (let i = 0; i < rockCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 100 + Math.random() * 800;
+            
+            const rockX = Math.cos(angle) * distance;
+            const rockZ = Math.sin(angle) * distance;
+            
+            const pos = this.worldToScreen(rockX, rockZ, isFullMap);
+            const size = isFullMap ? 6 : 3;
+            
+            // Draw rock as dark grey circle
+            ctx.fillStyle = '#404040';
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add smaller rocks around main rock
+            for (let j = 0; j < 3; j++) {
+                const smallAngle = (j / 3) * Math.PI * 2;
+                const smallDistance = size * 1.5;
+                const smallX = pos.x + Math.cos(smallAngle) * smallDistance;
+                const smallY = pos.y + Math.sin(smallAngle) * smallDistance;
+                
+                ctx.fillStyle = '#383838';
+                ctx.beginPath();
+                ctx.arc(smallX, smallY, size * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+    
+    drawGrassPatches(ctx, isFullMap) {
+        const scale = isFullMap ? this.fullMapScale : this.worldScale;
+        const grassCount = isFullMap ? 300 : 150; // Fewer on minimap for performance
+        
+        for (let i = 0; i < grassCount; i++) {
+            const grassX = (Math.random() - 0.5) * 1600;
+            const grassZ = (Math.random() - 0.5) * 1600;
+            
+            const pos = this.worldToScreen(grassX, grassZ, isFullMap);
+            const size = isFullMap ? 4 : 2;
+            
+            // Draw grass patch as slightly lighter grey
+            ctx.fillStyle = '#505050';
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    }
+    
+    drawStonePaths(ctx, isFullMap) {
+        const scale = isFullMap ? this.fullMapScale : this.worldScale;
+        const pathCount = 8;
+        
+        // Draw winding stone paths
+        for (let i = 0; i < pathCount; i++) {
+            const startAngle = (i / pathCount) * Math.PI * 2;
+            let currentX = Math.cos(startAngle) * 50;
+            let currentZ = Math.sin(startAngle) * 50;
+            let currentAngle = startAngle;
+            
+            ctx.strokeStyle = '#606060';
+            ctx.lineWidth = isFullMap ? 3 : 1.5;
+            ctx.lineCap = 'round';
+            
+            const pos = this.worldToScreen(currentX, currentZ, isFullMap);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            
+            // Draw path segments
+            for (let j = 0; j < 100; j++) {
+                currentAngle += (Math.random() - 0.5) * 0.3;
+                currentX += Math.cos(currentAngle) * 2;
+                currentZ += Math.sin(currentAngle) * 2;
+                
+                const segmentPos = this.worldToScreen(currentX, currentZ, isFullMap);
+                ctx.lineTo(segmentPos.x, segmentPos.y);
+            }
+            
+            ctx.stroke();
+        }
+    }
+    
+    drawNaturalStructures(ctx, isFullMap) {
+        const scale = isFullMap ? this.fullMapScale : this.worldScale;
+        const structureCount = 25;
+        
+        for (let i = 0; i < structureCount; i++) {
+            const structureX = (Math.random() - 0.5) * 1400;
+            const structureZ = (Math.random() - 0.5) * 1400;
+            
+            // Ensure not too close to spawn
+            if (Math.abs(structureX) < 100 && Math.abs(structureZ) < 100) {
+                continue;
+            }
+            
+            const pos = this.worldToScreen(structureX, structureZ, isFullMap);
+            const size = isFullMap ? 10 : 5;
+            
+            const structureType = i % 3;
+            
+            if (structureType === 0) {
+                // Pagoda tower - draw as stacked squares
+                ctx.fillStyle = '#4a4a4a';
+                for (let level = 0; level < 3; level++) {
+                    const levelSize = size - level * 2;
+                    ctx.fillRect(pos.x - levelSize/2, pos.y - levelSize/2, levelSize, levelSize);
+                }
+            } else if (structureType === 1) {
+                // Stone archway - draw as arch shape
+                ctx.strokeStyle = '#454545';
+                ctx.lineWidth = isFullMap ? 4 : 2;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, size, 0, Math.PI);
+                ctx.stroke();
+            } else {
+                // Mountain formation - draw as triangle
+                ctx.fillStyle = '#424242';
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y - size);
+                ctx.lineTo(pos.x - size, pos.y + size);
+                ctx.lineTo(pos.x + size, pos.y + size);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+    }
+    
+    drawLandmarks(ctx, isFullMap) {
+        const scale = isFullMap ? this.fullMapScale : this.worldScale;
+        
+        // Central Plaza
+        const plazaPos = this.worldToScreen(0, 0, isFullMap);
+        const plazaSize = isFullMap ? 20 : 10;
+        
+        ctx.fillStyle = '#555555';
+        ctx.beginPath();
+        ctx.arc(plazaPos.x, plazaPos.y, plazaSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw pillars around plaza
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const pillarX = plazaPos.x + Math.cos(angle) * plazaSize * 0.8;
+            const pillarY = plazaPos.y + Math.sin(angle) * plazaSize * 0.8;
+            
+            ctx.fillStyle = '#4a4a4a';
+            ctx.beginPath();
+            ctx.arc(pillarX, pillarY, isFullMap ? 3 : 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Sacred Grove (Northeast)
+        const grovePos = this.worldToScreen(300, 300, isFullMap);
+        const groveSize = isFullMap ? 15 : 8;
+        
+        // Draw circle of dead trees
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const treeX = grovePos.x + Math.cos(angle) * groveSize;
+            const treeY = grovePos.y + Math.sin(angle) * groveSize;
+            
+            ctx.fillStyle = '#353535';
+            ctx.beginPath();
+            ctx.arc(treeX, treeY, isFullMap ? 4 : 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Ancient Ruins (Southwest)
+        const ruinsPos = this.worldToScreen(-400, -400, isFullMap);
+        const ruinsSize = isFullMap ? 25 : 12;
+        
+        // Draw scattered broken pillars
+        for (let i = 0; i < 8; i++) {
+            const pillarX = ruinsPos.x + (Math.random() - 0.5) * ruinsSize * 2;
+            const pillarY = ruinsPos.y + (Math.random() - 0.5) * ruinsSize * 2;
+            
+            ctx.fillStyle = '#404040';
+            ctx.fillRect(pillarX - 1, pillarY - (isFullMap ? 6 : 3), 2, isFullMap ? 12 : 6);
+        }
     }
     
     drawTemple(ctx, temple, isFullMap) {

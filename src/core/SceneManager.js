@@ -22,6 +22,9 @@ class SceneManager {
         // Current scene state
         this.currentScene = 'menu'; // menu, cutscene, gameplay
         this.isLoaded = false;
+        
+        // Interaction cooldown
+        this.lastInteractionTime = 0;
     }
     
     async init() {
@@ -905,14 +908,38 @@ class SceneManager {
     
     enterTemple(type) {
         console.log(`🏛️ Entering ${type} temple...`);
-        // TODO: Implement temple entrance
-        alert(`🏛️ Welcome to the ${type} temple! Temple puzzles and boss battles coming soon...`);
+        
+        // Prevent multiple rapid entrances
+        if (this.lastInteractionTime && Date.now() - this.lastInteractionTime < 1000) {
+            return;
+        }
+        this.lastInteractionTime = Date.now();
+        
+        // Show temple message via UI instead of alert
+        if (this.game.uiManager) {
+            this.game.uiManager.showNotification(`🏛️ Entered ${type} temple! Temple puzzles coming soon...`, 'info');
+        }
+        
+        // TODO: Implement actual temple entrance
+        console.log(`🏛️ Temple entrance system not yet implemented`);
     }
     
     enterShop(type) {
         console.log(`🏪 Entering ${type} shop...`);
-        // TODO: Implement shop interface
-        alert(`🏪 Welcome to the ${type} shop! Shopping system coming soon...`);
+        
+        // Prevent multiple rapid entrances
+        if (this.lastInteractionTime && Date.now() - this.lastInteractionTime < 1000) {
+            return;
+        }
+        this.lastInteractionTime = Date.now();
+        
+        // Show shop message via UI instead of alert
+        if (this.game.uiManager) {
+            this.game.uiManager.showNotification(`🏪 Entered ${type} shop! Shopping system coming soon...`, 'info');
+        }
+        
+        // TODO: Implement actual shop interface
+        console.log(`🏪 Shop system not yet implemented`);
     }
     
     talkToNPC(npc) {

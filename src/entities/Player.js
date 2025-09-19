@@ -171,6 +171,9 @@ class Player {
             this.stamina = Math.min(this.maxStamina, this.stamina);
         }
         
+        // Update stamina UI
+        this.updateStaminaUI();
+        
         // Apply speed
         let currentSpeed = this.speed;
         if (isSprinting) {
@@ -272,16 +275,57 @@ class Player {
     }
     
     checkGrounded() {
-        // Raycast downward to check if player is on ground
-        this.raycaster.set(this.position, new THREE.Vector3(0, -1, 0));
-        const intersects = this.raycaster.intersectObjects(this.collisionObjects);
+        // Get terrain height at current position
+        const terrainHeight = this.getTerrainHeight(this.position.x, this.position.z);
+        const playerBottom = this.position.y - 1; // Player is 2 units tall, so bottom is at y-1
         
-        this.isGrounded = intersects.length > 0 && intersects[0].distance < 0.1;
+        // Check if player is close to terrain
+        this.isGrounded = playerBottom <= terrainHeight + 0.1;
         
-        // Reset vertical velocity if grounded
-        if (this.isGrounded && this.velocity.y < 0) {
-            this.velocity.y = 0;
-            this.position.y = Math.max(this.position.y, 2); // Minimum height
+        // Snap to terrain if grounded or falling below it
+        if (this.isGrounded || this.position.y < terrainHeight + 1) {
+            this.position.y = terrainHeight + 1; // Keep player 1 unit above terrain
+            if (this.velocity.y < 0) {
+                this.velocity.y = 0;
+            }
+            this.isGrounded = true;
+        }
+    }
+    
+    getTerrainHeight(x, z) {
+        // Calculate terrain height using same formula as terrain generation
+        const scale1 = 0.02;
+        const scale2 = 0.05;
+        const scale3 = 0.1;
+        
+        const height1 = Math.sin(x * scale1) * Math.cos(z * scale1) * 15;
+        const height2 = Math.sin(x * scale2) * Math.cos(z * scale2) * 8;
+        const height3 = Math.sin(x * scale3) * Math.cos(z * scale3) * 3;
+        
+        return height1 + height2 + height3;
+    }
+    
+    updateStaminaUI() {
+        // Update sprint bar UI
+        const sprintBarFill = document.getElementById('sprintBarFill');
+        const sprintText = document.getElementById('sprintText');
+        
+        if (sprintBarFill) {
+            const staminaPercent = (this.stamina / this.maxStamina) * 100;
+            sprintBarFill.style.width = `${staminaPercent}%`;
+            
+            // Change color based on stamina level
+            if (staminaPercent < 25) {
+                sprintBarFill.style.background = '#ff4444'; // Red when low
+            } else if (staminaPercent < 50) {
+                sprintBarFill.style.background = '#ffaa44'; // Orange when medium
+            } else {
+                sprintBarFill.style.background = '#44ff44'; // Green when high
+            }
+        }
+        
+        if (sprintText) {
+            sprintText.textContent = `${Math.round(this.stamina)}%`;
         }
     }
     
