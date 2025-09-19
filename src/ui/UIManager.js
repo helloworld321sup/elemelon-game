@@ -478,7 +478,7 @@ class UIManager {
     
     // Interaction system
     showInteractionPrompt(object) {
-        if (!this.interactionPrompt) return;
+        if (!this.interactionPrompt || !object || !object.userData) return;
         
         let promptText = 'Press E to interact';
         
