@@ -425,51 +425,55 @@ class Minimap {
     }
     
     drawRockFormations(ctx, isFullMap) {
-        const scale = isFullMap ? this.fullMapScale : this.worldScale;
-        const rockCount = 150; // Match SceneManager rock count
+        // Get actual rock positions from SceneManager
+        const sceneManager = this.game.sceneManager;
+        if (!sceneManager || !sceneManager.cityObjects) return;
         
-        // Generate same rock positions as SceneManager
-        for (let i = 0; i < rockCount; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 100 + Math.random() * 800;
-            
-            const rockX = Math.cos(angle) * distance;
-            const rockZ = Math.sin(angle) * distance;
-            
-            const pos = this.worldToScreen(rockX, rockZ, isFullMap);
-            const size = isFullMap ? 6 : 3;
-            
-            // Draw rock as dark grey circle
-            ctx.fillStyle = '#404040';
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Add smaller rocks around main rock
-            for (let j = 0; j < 3; j++) {
-                const smallAngle = (j / 3) * Math.PI * 2;
-                const smallDistance = size * 1.5;
-                const smallX = pos.x + Math.cos(smallAngle) * smallDistance;
-                const smallY = pos.y + Math.sin(smallAngle) * smallDistance;
-                
-                ctx.fillStyle = '#383838';
-                ctx.beginPath();
-                ctx.arc(smallX, smallY, size * 0.4, 0, Math.PI * 2);
-                ctx.fill();
+        const size = isFullMap ? 6 : 3;
+        
+        // Draw actual rock objects from the world
+        sceneManager.cityObjects.forEach(object => {
+            if (object.userData && object.userData.isCollidable && object.position) {
+                // Check if this is likely a rock (has position in expected range)
+                const distance = Math.sqrt(object.position.x * object.position.x + object.position.z * object.position.z);
+                if (distance > 50 && distance < 900) { // Rock distance range
+                    const pos = this.worldToScreen(object.position.x, object.position.z, isFullMap);
+                    
+                    // Draw main rock
+                    ctx.fillStyle = '#404040';
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Add smaller rocks around main rock
+                    for (let j = 0; j < 3; j++) {
+                        const smallAngle = (j / 3) * Math.PI * 2;
+                        const smallDistance = size * 1.5;
+                        const smallX = pos.x + Math.cos(smallAngle) * smallDistance;
+                        const smallY = pos.y + Math.sin(smallAngle) * smallDistance;
+                        
+                        ctx.fillStyle = '#383838';
+                        ctx.beginPath();
+                        ctx.arc(smallX, smallY, size * 0.4, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
             }
-        }
+        });
     }
     
     drawGrassPatches(ctx, isFullMap) {
-        const scale = isFullMap ? this.fullMapScale : this.worldScale;
+        // Use deterministic grass positions based on world coordinates
         const grassCount = isFullMap ? 300 : 150; // Fewer on minimap for performance
+        const size = isFullMap ? 4 : 2;
         
+        // Generate consistent grass positions using simple hash function
         for (let i = 0; i < grassCount; i++) {
-            const grassX = (Math.random() - 0.5) * 1600;
-            const grassZ = (Math.random() - 0.5) * 1600;
+            // Use index-based deterministic positioning
+            const seedX = (i * 73) % 1600 - 800; // Deterministic X
+            const seedZ = ((i * 97) % 1600) - 800; // Deterministic Z
             
-            const pos = this.worldToScreen(grassX, grassZ, isFullMap);
-            const size = isFullMap ? 4 : 2;
+            const pos = this.worldToScreen(seedX, seedZ, isFullMap);
             
             // Draw grass patch as slightly lighter grey
             ctx.fillStyle = '#505050';
@@ -482,10 +486,9 @@ class Minimap {
     }
     
     drawStonePaths(ctx, isFullMap) {
-        const scale = isFullMap ? this.fullMapScale : this.worldScale;
         const pathCount = 8;
         
-        // Draw winding stone paths
+        // Draw winding stone paths with deterministic curves
         for (let i = 0; i < pathCount; i++) {
             const startAngle = (i / pathCount) * Math.PI * 2;
             let currentX = Math.cos(startAngle) * 50;
@@ -500,9 +503,11 @@ class Minimap {
             ctx.beginPath();
             ctx.moveTo(pos.x, pos.y);
             
-            // Draw path segments
+            // Draw path segments with deterministic curves
             for (let j = 0; j < 100; j++) {
-                currentAngle += (Math.random() - 0.5) * 0.3;
+                // Use deterministic angle changes instead of random
+                const angleChange = Math.sin((i * 100 + j) * 0.1) * 0.3;
+                currentAngle += angleChange;
                 currentX += Math.cos(currentAngle) * 2;
                 currentZ += Math.sin(currentAngle) * 2;
                 
@@ -515,48 +520,52 @@ class Minimap {
     }
     
     drawNaturalStructures(ctx, isFullMap) {
-        const scale = isFullMap ? this.fullMapScale : this.worldScale;
-        const structureCount = 25;
+        // Get actual natural structures from SceneManager
+        const sceneManager = this.game.sceneManager;
+        if (!sceneManager || !sceneManager.cityObjects) return;
         
-        for (let i = 0; i < structureCount; i++) {
-            const structureX = (Math.random() - 0.5) * 1400;
-            const structureZ = (Math.random() - 0.5) * 1400;
-            
-            // Ensure not too close to spawn
-            if (Math.abs(structureX) < 100 && Math.abs(structureZ) < 100) {
-                continue;
-            }
-            
-            const pos = this.worldToScreen(structureX, structureZ, isFullMap);
-            const size = isFullMap ? 10 : 5;
-            
-            const structureType = i % 3;
-            
-            if (structureType === 0) {
-                // Pagoda tower - draw as stacked squares
-                ctx.fillStyle = '#4a4a4a';
-                for (let level = 0; level < 3; level++) {
-                    const levelSize = size - level * 2;
-                    ctx.fillRect(pos.x - levelSize/2, pos.y - levelSize/2, levelSize, levelSize);
+        const size = isFullMap ? 10 : 5;
+        let structureIndex = 0;
+        
+        // Draw actual natural structure objects from the world
+        sceneManager.cityObjects.forEach(object => {
+            if (object.userData && object.userData.isCollidable && object.position) {
+                // Check if this is likely a natural structure (not too close to center, medium distance)
+                const distance = Math.sqrt(object.position.x * object.position.x + object.position.z * object.position.z);
+                if (distance > 100 && distance < 800 && Math.abs(object.position.x) > 100 && Math.abs(object.position.z) > 100) {
+                    const pos = this.worldToScreen(object.position.x, object.position.z, isFullMap);
+                    const structureType = structureIndex % 3;
+                    
+                    if (structureType === 0) {
+                        // Pagoda tower - draw as stacked squares
+                        ctx.fillStyle = '#4a4a4a';
+                        for (let level = 0; level < 3; level++) {
+                            const levelSize = size - level * 2;
+                            ctx.fillRect(pos.x - levelSize/2, pos.y - levelSize/2, levelSize, levelSize);
+                        }
+                    } else if (structureType === 1) {
+                        // Stone archway - draw as arch shape
+                        ctx.strokeStyle = '#454545';
+                        ctx.lineWidth = isFullMap ? 4 : 2;
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y, size, 0, Math.PI);
+                        ctx.stroke();
+                    } else {
+                        // Mountain formation - draw as triangle
+                        ctx.fillStyle = '#424242';
+                        ctx.beginPath();
+                        ctx.moveTo(pos.x, pos.y - size);
+                        ctx.lineTo(pos.x - size, pos.y + size);
+                        ctx.lineTo(pos.x + size, pos.y + size);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    
+                    structureIndex++;
+                    if (structureIndex >= 25) return; // Limit to 25 structures
                 }
-            } else if (structureType === 1) {
-                // Stone archway - draw as arch shape
-                ctx.strokeStyle = '#454545';
-                ctx.lineWidth = isFullMap ? 4 : 2;
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, size, 0, Math.PI);
-                ctx.stroke();
-            } else {
-                // Mountain formation - draw as triangle
-                ctx.fillStyle = '#424242';
-                ctx.beginPath();
-                ctx.moveTo(pos.x, pos.y - size);
-                ctx.lineTo(pos.x - size, pos.y + size);
-                ctx.lineTo(pos.x + size, pos.y + size);
-                ctx.closePath();
-                ctx.fill();
             }
-        }
+        });
     }
     
     drawLandmarks(ctx, isFullMap) {

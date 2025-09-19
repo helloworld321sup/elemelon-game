@@ -687,7 +687,17 @@ class SceneManager {
         templePositions.forEach(pos => {
             const temple = this.createTemple(pos.type, pos.color);
             temple.position.set(pos.x, 0, pos.z);
+            
+            // Add to temple list
             this.temples.push(temple);
+            
+            // Add to collision system
+            if (temple.userData.isCollidable) {
+                temple.userData.boundingBox = new THREE.Box3().setFromObject(temple);
+                this.collisionObjects.push(temple);
+                console.log(`🏛️ Added ${pos.type} temple to collision system`);
+            }
+            
             this.gameEngine.addToScene(temple);
         });
     }
@@ -1255,8 +1265,16 @@ class SceneManager {
         
         // Check collision with all collidable objects
         for (const object of this.collisionObjects || []) {
-            if (object.userData.boundingBox && object.userData.boundingBox.intersectsBox(playerBox)) {
-                return true; // Collision detected
+            if (object.userData.boundingBox) {
+                // Update bounding box to current object position
+                const worldBoundingBox = object.userData.boundingBox.clone();
+                worldBoundingBox.translate(object.position);
+                
+                if (worldBoundingBox.intersectsBox(playerBox)) {
+                    // Debug collision
+                    console.log(`🚫 Collision detected with object at ${object.position.x}, ${object.position.z}`);
+                    return true; // Collision detected
+                }
             }
         }
         

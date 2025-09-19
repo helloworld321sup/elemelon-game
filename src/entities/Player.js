@@ -191,8 +191,28 @@ class Player {
             movement.copy(validMovement);
         }
         
-        // Apply gravity
-        this.velocity.y += this.gravity * deltaTime;
+        // Apply horizontal movement first
+        const horizontalMovement = movement.clone();
+        horizontalMovement.y = 0; // No vertical movement yet
+        
+        // Check horizontal collision
+        const newHorizontalPosition = this.position.clone().add(horizontalMovement);
+        if (this.checkCollision(newHorizontalPosition)) {
+            // Handle collision - slide along surfaces
+            horizontalMovement.copy(this.handleCollision(this.position, horizontalMovement));
+        }
+        
+        // Update horizontal position
+        this.position.add(horizontalMovement);
+        
+        // Now handle vertical movement and terrain following
+        const terrainHeight = this.getTerrainHeight(this.position.x, this.position.z);
+        const targetY = terrainHeight + 1; // Player should be 1 unit above terrain
+        
+        // Debug terrain following (remove this later)
+        if (Math.random() < 0.01) { // Only log occasionally to avoid spam
+            console.log(`🏔️ Player at (${this.position.x.toFixed(1)}, ${this.position.z.toFixed(1)}) - Terrain: ${terrainHeight.toFixed(2)}, Target Y: ${targetY.toFixed(2)}, Current Y: ${this.position.y.toFixed(2)}`);
+        }
         
         // Handle jumping
         if (input.jump && this.isGrounded) {
@@ -200,23 +220,25 @@ class Player {
             this.isGrounded = false;
         }
         
-        // Combine horizontal movement with vertical velocity
-        const finalMovement = movement.clone();
-        finalMovement.y = this.velocity.y * deltaTime;
-        
-        // Apply collision detection
-        const newPosition = this.position.clone().add(finalMovement);
-        
-        if (this.checkCollision(newPosition)) {
-            // Handle collision - slide along surfaces
-            newPosition.copy(this.handleCollision(this.position, finalMovement));
+        // Apply gravity only if above terrain
+        if (this.position.y > targetY || this.velocity.y > 0) {
+            this.velocity.y += this.gravity * deltaTime;
+            this.position.y += this.velocity.y * deltaTime;
+            
+            // Check if we've landed on terrain
+            if (this.position.y <= targetY) {
+                this.position.y = targetY;
+                this.velocity.y = 0;
+                this.isGrounded = true;
+            } else {
+                this.isGrounded = false;
+            }
+        } else {
+            // Snap to terrain and stay grounded
+            this.position.y = targetY;
+            this.velocity.y = 0;
+            this.isGrounded = true;
         }
-        
-        // Update position
-        this.position.copy(newPosition);
-        
-        // Ground check
-        this.checkGrounded();
         
         // Keep player in world bounds
         this.enforceWorldBounds();
@@ -277,23 +299,7 @@ class Player {
         return currentPos.clone();
     }
     
-    checkGrounded() {
-        // Get terrain height at current position
-        const terrainHeight = this.getTerrainHeight(this.position.x, this.position.z);
-        const playerBottom = this.position.y - 1; // Player is 2 units tall, so bottom is at y-1
-        
-        // Check if player is close to terrain
-        this.isGrounded = playerBottom <= terrainHeight + 0.1;
-        
-        // Snap to terrain if grounded or falling below it
-        if (this.isGrounded || this.position.y < terrainHeight + 1) {
-            this.position.y = terrainHeight + 1; // Keep player 1 unit above terrain
-            if (this.velocity.y < 0) {
-                this.velocity.y = 0;
-            }
-            this.isGrounded = true;
-        }
-    }
+    // checkGrounded method removed - terrain following now handled in updateMovement
     
     getTerrainHeight(x, z) {
         // Calculate terrain height using same formula as terrain generation
@@ -311,9 +317,9 @@ class Player {
     initializeOnTerrain() {
         // Set player to correct height on terrain
         const terrainHeight = this.getTerrainHeight(this.position.x, this.position.z);
-        this.position.y = terrainHeight + 2; // Player height + buffer
+        this.position.y = terrainHeight + 1; // Consistent with movement logic
         this.isGrounded = true;
-        console.log(`👤 Player initialized on terrain at height: ${this.position.y}`);
+        console.log(`👤 Player initialized on terrain at height: ${this.position.y} (terrain: ${terrainHeight})`);
     }
     
     updateStaminaUI() {
