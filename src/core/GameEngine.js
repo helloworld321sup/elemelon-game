@@ -105,12 +105,12 @@ class GameEngine {
         }
         
         // Set rendering parameters
-        this.renderer.outputEncoding = THREE.sRGBEncoding;
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
         
         // Enable physically correct lighting
-        this.renderer.physicallyCorrectLights = true;
+        this.renderer.useLegacyLights = false;
     }
     
     initLighting() {
