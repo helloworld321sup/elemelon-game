@@ -79,8 +79,7 @@ class CutsceneManager {
         // Start the real 3D opening sequence
         await this.walkingHomeSequence();
         
-        // End cutscene and start gameplay
-        this.endCutscene();
+        // Cutscene will end automatically from walkingHomeSequence
     }
     
     async playTempleEntranceCutscene(templeType) {
@@ -409,6 +408,18 @@ class CutsceneManager {
     
     // 3D Scene Creation Methods
     async createOpeningScene() {
+        // Make sure we have scene and camera access
+        if (!this.scene || !this.camera) {
+            this.scene = this.game.gameEngine ? this.game.gameEngine.scene : null;
+            this.camera = this.game.gameEngine ? this.game.gameEngine.camera : null;
+        }
+        
+        if (!this.scene || !this.camera) {
+            console.error('🎬 Cannot create 3D cutscene - missing scene or camera');
+            this.endCutscene();
+            return;
+        }
+        
         // Clear existing cutscene objects
         this.clearCutsceneObjects();
         
@@ -699,10 +710,36 @@ class CutsceneManager {
     }
     
     clearCutsceneObjects() {
+        if (!this.scene) return;
+        
         this.cutsceneObjects.forEach(obj => {
-            this.scene.remove(obj);
-            if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) obj.material.dispose();
+            if (obj && this.scene) {
+                this.scene.remove(obj);
+                
+                // Dispose of geometries and materials
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) {
+                        obj.material.forEach(mat => mat.dispose());
+                    } else {
+                        obj.material.dispose();
+                    }
+                }
+                
+                // Handle groups with children
+                if (obj.children) {
+                    obj.children.forEach(child => {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(mat => mat.dispose());
+                            } else {
+                                child.material.dispose();
+                            }
+                        }
+                    });
+                }
+            }
         });
         this.cutsceneObjects = [];
     }

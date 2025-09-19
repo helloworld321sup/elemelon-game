@@ -80,43 +80,539 @@ class SceneManager {
     }
     
     createCity() {
-        console.log('🏙️ Creating city...');
+        console.log('🏞️ Creating detailed Zelda-style terrain...');
         
-        // Create city buildings
-        this.createBuildings();
-        this.createStreets();
-        this.createLandmarks();
+        // Create natural terrain with Kung Fu Panda aesthetic
+        this.createTerrain();
+        this.createRockFormations();
+        this.createGrassPatches();
+        this.createStonePaths();
+        this.createNaturalStructures();
+        this.createDetailedLandmarks();
     }
     
-    createBuildings() {
-        const buildingCount = 200; // Much more buildings
-        const citySize = 1000; // 5x larger world
+    // Create detailed terrain base with rolling hills
+    createTerrain() {
+        const worldSize = 2000; // Even bigger world
+        const terrainDetail = 200; // High detail terrain
         
         // Create collision detection array
         this.collisionObjects = this.collisionObjects || [];
         
-        for (let i = 0; i < buildingCount; i++) {
-            const building = this.createBuilding();
+        // Generate height map for rolling hills
+        const heightMap = [];
+        for (let x = 0; x < terrainDetail; x++) {
+            heightMap[x] = [];
+            for (let z = 0; z < terrainDetail; z++) {
+                // Multiple octaves of noise for natural terrain
+                const scale1 = 0.02;
+                const scale2 = 0.05;
+                const scale3 = 0.1;
+                
+                const height1 = Math.sin(x * scale1) * Math.cos(z * scale1) * 15;
+                const height2 = Math.sin(x * scale2) * Math.cos(z * scale2) * 8;
+                const height3 = Math.sin(x * scale3) * Math.cos(z * scale3) * 3;
+                
+                heightMap[x][z] = height1 + height2 + height3;
+            }
+        }
+        
+        // Create terrain mesh
+        const terrainGeometry = new THREE.PlaneGeometry(worldSize, worldSize, terrainDetail - 1, terrainDetail - 1);
+        const vertices = terrainGeometry.attributes.position.array;
+        
+        // Apply height map to vertices
+        for (let i = 0; i < vertices.length; i += 3) {
+            const x = Math.floor((vertices[i] + worldSize/2) / worldSize * terrainDetail);
+            const z = Math.floor((vertices[i + 2] + worldSize/2) / worldSize * terrainDetail);
             
-            // Random position within city bounds
-            building.position.x = (Math.random() - 0.5) * citySize;
-            building.position.z = (Math.random() - 0.5) * citySize;
+            if (x >= 0 && x < terrainDetail && z >= 0 && z < terrainDetail) {
+                vertices[i + 1] = heightMap[x][z]; // Y coordinate
+            }
+        }
+        
+        terrainGeometry.computeVertexNormals();
+        
+        // Grey terrain material with subtle texture
+        const terrainMaterial = new THREE.MeshLambertMaterial({
+            color: 0x606060, // Medium grey
+            wireframe: false
+        });
+        
+        const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
+        terrain.rotation.x = -Math.PI / 2;
+        terrain.receiveShadow = true;
+        terrain.userData.isCollidable = false; // Terrain is walkable
+        
+        this.gameEngine.addToScene(terrain);
+        this.cityObjects.push(terrain);
+    }
+    
+    // Create massive rock formations like Zelda/Kung Fu Panda
+    createRockFormations() {
+        const rockCount = 150; // Tons of rocks
+        const worldSize = 1800;
+        
+        for (let i = 0; i < rockCount; i++) {
+            const rockGroup = this.createDetailedRock();
             
-            // Ensure buildings don't overlap with player spawn area
-            if (building.position.x > -50 && building.position.x < 50 && 
-                building.position.z > -50 && building.position.z < 50) {
-                building.position.x += Math.sign(building.position.x) * 80;
-                building.position.z += Math.sign(building.position.z) * 80;
+            // Spread them far apart across the world
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 100 + Math.random() * 800; // Very spread out
+            
+            rockGroup.position.x = Math.cos(angle) * distance;
+            rockGroup.position.z = Math.sin(angle) * distance;
+            rockGroup.position.y = Math.random() * 5; // Slight height variation
+            
+            // Random rotation for natural look
+            rockGroup.rotation.y = Math.random() * Math.PI * 2;
+            
+            // Add collision
+            rockGroup.userData.isCollidable = true;
+            rockGroup.userData.boundingBox = new THREE.Box3().setFromObject(rockGroup);
+            this.collisionObjects.push(rockGroup);
+            
+            this.cityObjects.push(rockGroup);
+            this.gameEngine.addToScene(rockGroup);
+        }
+    }
+    
+    createDetailedRock() {
+        const rockGroup = new THREE.Group();
+        
+        // Main rock (irregular shape)
+        const mainRockSize = 8 + Math.random() * 20;
+        const rockGeometry = new THREE.SphereGeometry(mainRockSize, 8, 6);
+        
+        // Deform the sphere to make it look more natural
+        const vertices = rockGeometry.attributes.position.array;
+        for (let i = 0; i < vertices.length; i += 3) {
+            vertices[i] += (Math.random() - 0.5) * mainRockSize * 0.3;
+            vertices[i + 1] += (Math.random() - 0.5) * mainRockSize * 0.2;
+            vertices[i + 2] += (Math.random() - 0.5) * mainRockSize * 0.3;
+        }
+        rockGeometry.computeVertexNormals();
+        
+        const rockMaterial = new THREE.MeshLambertMaterial({
+            color: 0x4a4a4a, // Dark grey rock
+            roughness: 0.9
+        });
+        
+        const mainRock = new THREE.Mesh(rockGeometry, rockMaterial);
+        mainRock.castShadow = true;
+        mainRock.receiveShadow = true;
+        rockGroup.add(mainRock);
+        
+        // Add smaller rocks around it
+        const smallRockCount = 3 + Math.floor(Math.random() * 5);
+        for (let i = 0; i < smallRockCount; i++) {
+            const smallRockSize = 2 + Math.random() * 4;
+            const smallRockGeometry = new THREE.SphereGeometry(smallRockSize, 6, 4);
+            
+            // Deform small rocks too
+            const smallVertices = smallRockGeometry.attributes.position.array;
+            for (let j = 0; j < smallVertices.length; j += 3) {
+                smallVertices[j] += (Math.random() - 0.5) * smallRockSize * 0.4;
+                smallVertices[j + 1] += (Math.random() - 0.5) * smallRockSize * 0.3;
+                smallVertices[j + 2] += (Math.random() - 0.5) * smallRockSize * 0.4;
+            }
+            smallRockGeometry.computeVertexNormals();
+            
+            const smallRock = new THREE.Mesh(smallRockGeometry, rockMaterial);
+            smallRock.position.set(
+                (Math.random() - 0.5) * mainRockSize * 1.5,
+                Math.random() * 3,
+                (Math.random() - 0.5) * mainRockSize * 1.5
+            );
+            smallRock.castShadow = true;
+            smallRock.receiveShadow = true;
+            rockGroup.add(smallRock);
+        }
+        
+        return rockGroup;
+    }
+    
+    // Create grass patches scattered around
+    createGrassPatches() {
+        const grassPatchCount = 300; // Tons of grass patches
+        const worldSize = 1600;
+        
+        for (let i = 0; i < grassPatchCount; i++) {
+            const grassPatch = this.createGrassPatch();
+            
+            grassPatch.position.x = (Math.random() - 0.5) * worldSize;
+            grassPatch.position.z = (Math.random() - 0.5) * worldSize;
+            grassPatch.position.y = 0.1; // Slightly above ground
+            
+            // Random rotation
+            grassPatch.rotation.y = Math.random() * Math.PI * 2;
+            
+            this.cityObjects.push(grassPatch);
+            this.gameEngine.addToScene(grassPatch);
+        }
+    }
+    
+    createGrassPatch() {
+        const grassGroup = new THREE.Group();
+        const grassBladeCount = 20 + Math.floor(Math.random() * 30);
+        
+        // Grey grass material (colorless world)
+        const grassMaterial = new THREE.MeshLambertMaterial({
+            color: 0x555555, // Dark grey grass
+            side: THREE.DoubleSide
+        });
+        
+        for (let i = 0; i < grassBladeCount; i++) {
+            const bladeHeight = 0.5 + Math.random() * 1.5;
+            const bladeGeometry = new THREE.PlaneGeometry(0.1, bladeHeight);
+            
+            const grassBlade = new THREE.Mesh(bladeGeometry, grassMaterial);
+            grassBlade.position.set(
+                (Math.random() - 0.5) * 4,
+                bladeHeight / 2,
+                (Math.random() - 0.5) * 4
+            );
+            grassBlade.rotation.y = Math.random() * Math.PI;
+            grassBlade.rotation.x = (Math.random() - 0.5) * 0.3;
+            
+            grassGroup.add(grassBlade);
+        }
+        
+        return grassGroup;
+    }
+    
+    // Create winding stone paths
+    createStonePaths() {
+        const pathCount = 8; // Several winding paths
+        
+        for (let i = 0; i < pathCount; i++) {
+            this.createWindingPath(i);
+        }
+    }
+    
+    createWindingPath(pathIndex) {
+        const pathLength = 200 + Math.random() * 300;
+        const pathWidth = 4 + Math.random() * 2;
+        const stoneCount = Math.floor(pathLength / 2);
+        
+        // Starting position
+        const startAngle = (pathIndex / 8) * Math.PI * 2;
+        let currentX = Math.cos(startAngle) * 50;
+        let currentZ = Math.sin(startAngle) * 50;
+        let currentAngle = startAngle;
+        
+        for (let i = 0; i < stoneCount; i++) {
+            const stone = this.createPathStone();
+            
+            stone.position.x = currentX;
+            stone.position.z = currentZ;
+            stone.position.y = 0.05;
+            
+            // Random rotation for natural look
+            stone.rotation.y = Math.random() * Math.PI * 2;
+            
+            this.cityObjects.push(stone);
+            this.gameEngine.addToScene(stone);
+            
+            // Move to next position with slight curve
+            currentAngle += (Math.random() - 0.5) * 0.3;
+            currentX += Math.cos(currentAngle) * 2;
+            currentZ += Math.sin(currentAngle) * 2;
+        }
+    }
+    
+    createPathStone() {
+        const stoneSize = 0.8 + Math.random() * 0.4;
+        const stoneGeometry = new THREE.CylinderGeometry(stoneSize, stoneSize, 0.2, 6);
+        const stoneMaterial = new THREE.MeshLambertMaterial({
+            color: 0x666666, // Grey stone
+        });
+        
+        const stone = new THREE.Mesh(stoneGeometry, stoneMaterial);
+        stone.receiveShadow = true;
+        
+        return stone;
+    }
+    
+    // Create Kung Fu Panda style natural structures
+    createNaturalStructures() {
+        const structureCount = 25; // Fewer but more impressive structures
+        const worldSize = 1400;
+        
+        for (let i = 0; i < structureCount; i++) {
+            const structure = this.createKungFuStructure();
+            
+            structure.position.x = (Math.random() - 0.5) * worldSize;
+            structure.position.z = (Math.random() - 0.5) * worldSize;
+            
+            // Ensure not too close to spawn
+            if (Math.abs(structure.position.x) < 100 && Math.abs(structure.position.z) < 100) {
+                structure.position.x += Math.sign(structure.position.x) * 150;
+                structure.position.z += Math.sign(structure.position.z) * 150;
             }
             
-            // Add collision data
-            building.userData.isCollidable = true;
-            building.userData.boundingBox = new THREE.Box3().setFromObject(building);
-            this.collisionObjects.push(building);
+            structure.userData.isCollidable = true;
+            structure.userData.boundingBox = new THREE.Box3().setFromObject(structure);
+            this.collisionObjects.push(structure);
             
-            this.cityObjects.push(building);
-            this.gameEngine.addToScene(building);
+            this.cityObjects.push(structure);
+            this.gameEngine.addToScene(structure);
         }
+    }
+    
+    createKungFuStructure() {
+        const structureGroup = new THREE.Group();
+        const structureType = Math.floor(Math.random() * 3);
+        
+        if (structureType === 0) {
+            // Pagoda-style tower
+            return this.createPagodaTower();
+        } else if (structureType === 1) {
+            // Natural stone archway
+            return this.createStoneArchway();
+        } else {
+            // Mountain-like formation
+            return this.createMountainFormation();
+        }
+    }
+    
+    createPagodaTower() {
+        const towerGroup = new THREE.Group();
+        const levels = 3 + Math.floor(Math.random() * 3);
+        
+        const greyWoodMaterial = new THREE.MeshLambertMaterial({ color: 0x555555 });
+        const greyRoofMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
+        
+        for (let i = 0; i < levels; i++) {
+            const levelHeight = 8;
+            const levelSize = 12 - i * 2;
+            
+            // Main structure
+            const levelGeometry = new THREE.CylinderGeometry(levelSize, levelSize, levelHeight, 8);
+            const levelMesh = new THREE.Mesh(levelGeometry, greyWoodMaterial);
+            levelMesh.position.y = i * levelHeight + levelHeight / 2;
+            levelMesh.castShadow = true;
+            levelMesh.receiveShadow = true;
+            towerGroup.add(levelMesh);
+            
+            // Roof
+            const roofGeometry = new THREE.ConeGeometry(levelSize + 2, 3, 8);
+            const roofMesh = new THREE.Mesh(roofGeometry, greyRoofMaterial);
+            roofMesh.position.y = i * levelHeight + levelHeight;
+            roofMesh.castShadow = true;
+            towerGroup.add(roofMesh);
+        }
+        
+        return towerGroup;
+    }
+    
+    createStoneArchway() {
+        const archGroup = new THREE.Group();
+        const stoneMaterial = new THREE.MeshLambertMaterial({ color: 0x505050 });
+        
+        // Left pillar
+        const pillarGeometry = new THREE.CylinderGeometry(2, 2, 15, 8);
+        const leftPillar = new THREE.Mesh(pillarGeometry, stoneMaterial);
+        leftPillar.position.set(-8, 7.5, 0);
+        leftPillar.castShadow = true;
+        leftPillar.receiveShadow = true;
+        archGroup.add(leftPillar);
+        
+        // Right pillar
+        const rightPillar = new THREE.Mesh(pillarGeometry, stoneMaterial);
+        rightPillar.position.set(8, 7.5, 0);
+        rightPillar.castShadow = true;
+        rightPillar.receiveShadow = true;
+        archGroup.add(rightPillar);
+        
+        // Arch top
+        const archGeometry = new THREE.TorusGeometry(8, 2, 8, 16, Math.PI);
+        const archTop = new THREE.Mesh(archGeometry, stoneMaterial);
+        archTop.position.y = 15;
+        archTop.rotation.z = Math.PI;
+        archTop.castShadow = true;
+        archTop.receiveShadow = true;
+        archGroup.add(archTop);
+        
+        return archGroup;
+    }
+    
+    createMountainFormation() {
+        const mountainGroup = new THREE.Group();
+        const rockMaterial = new THREE.MeshLambertMaterial({ color: 0x484848 });
+        
+        // Main mountain peak
+        const mainPeakGeometry = new THREE.ConeGeometry(15, 30, 8);
+        const mainPeak = new THREE.Mesh(mainPeakGeometry, rockMaterial);
+        mainPeak.position.y = 15;
+        mainPeak.castShadow = true;
+        mainPeak.receiveShadow = true;
+        mountainGroup.add(mainPeak);
+        
+        // Smaller peaks around it
+        const smallPeakCount = 3 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < smallPeakCount; i++) {
+            const peakSize = 5 + Math.random() * 8;
+            const peakHeight = 10 + Math.random() * 15;
+            const peakGeometry = new THREE.ConeGeometry(peakSize, peakHeight, 6);
+            const peak = new THREE.Mesh(peakGeometry, rockMaterial);
+            
+            const angle = (i / smallPeakCount) * Math.PI * 2;
+            peak.position.x = Math.cos(angle) * (20 + Math.random() * 10);
+            peak.position.z = Math.sin(angle) * (20 + Math.random() * 10);
+            peak.position.y = peakHeight / 2;
+            
+            peak.castShadow = true;
+            peak.receiveShadow = true;
+            mountainGroup.add(peak);
+        }
+        
+        return mountainGroup;
+    }
+    
+    createDetailedLandmarks() {
+        // Create a few special landmark structures
+        this.createCentralPlaza();
+        this.createSacredGrove();
+        this.createAncientRuins();
+    }
+    
+    createCentralPlaza() {
+        const plazaGroup = new THREE.Group();
+        
+        // Large circular stone platform
+        const platformGeometry = new THREE.CylinderGeometry(25, 25, 1, 32);
+        const platformMaterial = new THREE.MeshLambertMaterial({ color: 0x606060 });
+        const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+        platform.position.y = 0.5;
+        platform.receiveShadow = true;
+        plazaGroup.add(platform);
+        
+        // Stone pillars around the edge
+        const pillarCount = 8;
+        const pillarMaterial = new THREE.MeshLambertMaterial({ color: 0x505050 });
+        
+        for (let i = 0; i < pillarCount; i++) {
+            const angle = (i / pillarCount) * Math.PI * 2;
+            const pillarGeometry = new THREE.CylinderGeometry(1.5, 1.5, 8, 8);
+            const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
+            
+            pillar.position.x = Math.cos(angle) * 20;
+            pillar.position.z = Math.sin(angle) * 20;
+            pillar.position.y = 4;
+            pillar.castShadow = true;
+            pillar.receiveShadow = true;
+            
+            plazaGroup.add(pillar);
+        }
+        
+        plazaGroup.position.set(0, 0, 0); // Center of world
+        this.cityObjects.push(plazaGroup);
+        this.gameEngine.addToScene(plazaGroup);
+    }
+    
+    createSacredGrove() {
+        const groveGroup = new THREE.Group();
+        
+        // Circle of ancient trees (grey/dead looking)
+        const treeCount = 12;
+        const treeRadius = 40;
+        
+        for (let i = 0; i < treeCount; i++) {
+            const tree = this.createAncientTree();
+            const angle = (i / treeCount) * Math.PI * 2;
+            
+            tree.position.x = Math.cos(angle) * treeRadius;
+            tree.position.z = Math.sin(angle) * treeRadius;
+            
+            groveGroup.add(tree);
+        }
+        
+        groveGroup.position.set(300, 0, 300); // Northeast area
+        this.cityObjects.push(groveGroup);
+        this.gameEngine.addToScene(groveGroup);
+    }
+    
+    createAncientTree() {
+        const treeGroup = new THREE.Group();
+        
+        // Tree trunk (grey/dead)
+        const trunkGeometry = new THREE.CylinderGeometry(2, 3, 15, 8);
+        const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x3a3a3a });
+        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+        trunk.position.y = 7.5;
+        trunk.castShadow = true;
+        trunk.receiveShadow = true;
+        treeGroup.add(trunk);
+        
+        // Dead branches
+        const branchCount = 5 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < branchCount; i++) {
+            const branchLength = 3 + Math.random() * 4;
+            const branchGeometry = new THREE.CylinderGeometry(0.3, 0.5, branchLength, 6);
+            const branch = new THREE.Mesh(branchGeometry, trunkMaterial);
+            
+            const angle = (i / branchCount) * Math.PI * 2;
+            branch.position.x = Math.cos(angle) * 2;
+            branch.position.y = 10 + Math.random() * 5;
+            branch.position.z = Math.sin(angle) * 2;
+            branch.rotation.z = (Math.random() - 0.5) * Math.PI / 2;
+            branch.rotation.y = angle;
+            
+            branch.castShadow = true;
+            treeGroup.add(branch);
+        }
+        
+        return treeGroup;
+    }
+    
+    createAncientRuins() {
+        const ruinsGroup = new THREE.Group();
+        
+        // Broken stone structures
+        const ruinMaterial = new THREE.MeshLambertMaterial({ color: 0x4a4a4a });
+        
+        // Broken pillars
+        const pillarCount = 8;
+        for (let i = 0; i < pillarCount; i++) {
+            const pillarHeight = 5 + Math.random() * 10; // Varying broken heights
+            const pillarGeometry = new THREE.CylinderGeometry(1.5, 1.5, pillarHeight, 8);
+            const pillar = new THREE.Mesh(pillarGeometry, ruinMaterial);
+            
+            pillar.position.x = (Math.random() - 0.5) * 60;
+            pillar.position.z = (Math.random() - 0.5) * 60;
+            pillar.position.y = pillarHeight / 2;
+            
+            // Random tilt for broken look
+            pillar.rotation.x = (Math.random() - 0.5) * 0.3;
+            pillar.rotation.z = (Math.random() - 0.5) * 0.3;
+            
+            pillar.castShadow = true;
+            pillar.receiveShadow = true;
+            ruinsGroup.add(pillar);
+        }
+        
+        // Scattered stone blocks
+        const blockCount = 20;
+        for (let i = 0; i < blockCount; i++) {
+            const blockSize = 1 + Math.random() * 3;
+            const blockGeometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
+            const block = new THREE.Mesh(blockGeometry, ruinMaterial);
+            
+            block.position.x = (Math.random() - 0.5) * 80;
+            block.position.z = (Math.random() - 0.5) * 80;
+            block.position.y = blockSize / 2;
+            
+            block.rotation.y = Math.random() * Math.PI * 2;
+            block.castShadow = true;
+            block.receiveShadow = true;
+            
+            ruinsGroup.add(block);
+        }
+        
+        ruinsGroup.position.set(-400, 0, -400); // Southwest area
+        this.cityObjects.push(ruinsGroup);
+        this.gameEngine.addToScene(ruinsGroup);
     }
     
     createBuilding() {
@@ -393,6 +889,11 @@ class SceneManager {
     }
     
     handleInteraction(object) {
+        if (!object || !object.userData) {
+            console.warn('⚠️ Tried to interact with invalid object');
+            return;
+        }
+        
         if (object.userData.isTemple) {
             this.enterTemple(object.userData.type);
         } else if (object.userData.isShop) {

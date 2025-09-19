@@ -484,11 +484,12 @@
     text-align: right;
 }
 
-/* ===== ADVANCED TOKEN COUNTER SYSTEM ===== */
-#tokenCounter {
+/* ===== SIMPLE TOKEN DISPLAY SYSTEM ===== */
+#tokenCounter,
+#tokensDisplay {
     position: absolute;
-    top: var(--space-8);
-    right: var(--space-8);
+    top: 30px;
+    left: 30px;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
@@ -499,7 +500,7 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: var(--space-2);
     font-weight: 600;
     color: var(--accent-orange);
     font-size: var(--text-lg);
@@ -517,64 +518,17 @@
         0 0 20px rgba(255, 152, 0, 0.2);
 }
 
-.token-icon {
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg,
-        var(--accent-orange-300),
-        var(--accent-orange-500),
-        var(--accent-orange-700)
-    );
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--text-lg);
-    animation: tokenSpin 3s linear infinite;
-    box-shadow: 
-        0 4px 12px rgba(255, 152, 0, 0.3),
-        inset 0 2px 4px rgba(255, 255, 255, 0.2);
-    position: relative;
-    overflow: hidden;
-}
+/* Token icon styles removed - no longer using spinning coin emojis */
 
-.token-icon::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg,
-        transparent 30%,
-        rgba(255, 255, 255, 0.5) 50%,
-        transparent 70%
-    );
-    animation: tokenShine 2s ease-in-out infinite;
-}
+/* Removed spinning token animations */
 
-.token-icon::after {
-    content: '🪙';
-    position: relative;
-    z-index: 2;
-    font-size: 18px;
-}
-
-@keyframes tokenSpin {
-    0% { transform: rotateY(0deg); }
-    100% { transform: rotateY(360deg); }
-}
-
-@keyframes tokenShine {
-    0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-    50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-}
-
-.token-count {
+.token-count,
+#tokenCount {
     font-family: 'JetBrains Mono', monospace;
     font-size: var(--text-xl);
     font-weight: 700;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    color: var(--accent-orange-300);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     position: relative;
 }
 
@@ -1117,7 +1071,6 @@
     transition: all var(--transition-smooth);
     overflow: hidden;
     z-index: 51;
-    position: relative;
 }
 
 #minimap::before {
