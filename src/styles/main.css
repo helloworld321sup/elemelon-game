@@ -250,13 +250,18 @@ body {
     background: radial-gradient(ellipse at center, var(--dark-bg-lighter) 0%, var(--black) 100%);
     overflow: hidden;
     user-select: none;
-    cursor: none;
+    cursor: default;
     color: var(--text-primary);
     line-height: 1.6;
     font-weight: 400;
     letter-spacing: 0.01em;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+}
+
+/* Only hide cursor during gameplay, not in menus */
+body.gameplay {
+    cursor: none;
 }
 
 body::before {
@@ -793,6 +798,8 @@ body::before {
     position: relative;
     margin: var(--space-8);
     overflow: hidden;
+    pointer-events: auto;
+    cursor: default;
 }
 
 .menu-content::before {
@@ -883,7 +890,7 @@ body::before {
     font-size: var(--text-lg);
     font-weight: 600;
     border-radius: var(--radius-full);
-    cursor: pointer;
+    cursor: pointer !important;
     transition: all var(--transition-smooth);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -1466,14 +1473,35 @@ img, video {
 }
 
 button {
-    cursor: pointer;
+    cursor: pointer !important;
     border: none;
     background: none;
     font-family: inherit;
+    pointer-events: auto !important;
 }
 
 input, textarea, select {
     font-family: inherit;
+    cursor: pointer !important;
+}
+
+/* Ensure all interactive elements are clickable */
+.menu-button,
+.menu-content,
+.screen,
+button,
+[role="button"],
+.clickable {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+.screen.active {
+    pointer-events: auto !important;
+}
+
+.screen.active * {
+    pointer-events: auto !important;
 }
 
 /* ===== END OF MAIN CSS ===== */
