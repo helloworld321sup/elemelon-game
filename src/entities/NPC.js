@@ -27,47 +27,98 @@ class NPC {
     }
     
     createMesh() {
-        // Create melon-shaped NPC
+        // Create detailed melon-shaped NPC
         const group = new THREE.Group();
         
-        // Main melon body (sphere)
-        const bodyGeometry = new THREE.SphereGeometry(1, 16, 12);
-        const bodyMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x90EE90 // Light green for melon
+        // Main melon body (more detailed sphere)
+        const bodyGeometry = new THREE.SphereGeometry(1.2, 32, 24);
+        const bodyMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x90EE90, // Light green for melon
+            shininess: 30,
+            specular: 0x222222
         });
         const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        body.position.y = 1;
+        body.position.y = 1.2;
         body.castShadow = true;
+        body.receiveShadow = true;
         
-        // Melon stripes
-        const stripeGeometry = new THREE.RingGeometry(0.8, 1.1, 8);
-        const stripeMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0x228B22,
-            transparent: true,
-            opacity: 0.7
-        });
-        
-        for (let i = 0; i < 4; i++) {
+        // Detailed melon stripes (vertical)
+        for (let i = 0; i < 8; i++) {
+            const stripeGeometry = new THREE.CylinderGeometry(1.25, 1.25, 2.4, 4);
+            const stripeMaterial = new THREE.MeshPhongMaterial({ 
+                color: 0x228B22,
+                transparent: true,
+                opacity: 0.8
+            });
+            
             const stripe = new THREE.Mesh(stripeGeometry, stripeMaterial);
-            stripe.rotation.x = Math.PI / 2;
-            stripe.position.y = 1 + (i - 2) * 0.3;
-            stripe.scale.setScalar(0.8 + i * 0.1);
+            stripe.position.y = 1.2;
+            stripe.rotation.y = (i / 8) * Math.PI * 2;
+            stripe.scale.set(0.05, 1, 1);
             group.add(stripe);
         }
         
-        // Simple eyes
-        const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        // Improved eyes
+        const eyeGeometry = new THREE.SphereGeometry(0.15, 16, 12);
+        const eyeMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+        const pupilGeometry = new THREE.SphereGeometry(0.08, 12, 8);
+        const pupilMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
         
         const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        leftEye.position.set(-0.3, 1.2, 0.8);
+        leftEye.position.set(-0.4, 1.4, 1.0);
+        const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+        leftPupil.position.set(-0.4, 1.4, 1.08);
         
         const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        rightEye.position.set(0.3, 1.2, 0.8);
+        rightEye.position.set(0.4, 1.4, 1.0);
+        const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+        rightPupil.position.set(0.4, 1.4, 1.08);
         
+        // Mouth
+        const mouthGeometry = new THREE.TorusGeometry(0.2, 0.05, 8, 16, Math.PI);
+        const mouthMaterial = new THREE.MeshPhongMaterial({ color: 0x8B0000 });
+        const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+        mouth.position.set(0, 1.0, 1.0);
+        mouth.rotation.x = Math.PI;
+        
+        // Arms
+        const armGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.8);
+        const armMaterial = new THREE.MeshPhongMaterial({ color: 0x90EE90 });
+        
+        const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+        leftArm.position.set(-1.3, 1.0, 0);
+        leftArm.rotation.z = Math.PI / 4;
+        
+        const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+        rightArm.position.set(1.3, 1.0, 0);
+        rightArm.rotation.z = -Math.PI / 4;
+        
+        // Legs
+        const legGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.6);
+        const legMaterial = new THREE.MeshPhongMaterial({ color: 0x90EE90 });
+        
+        const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
+        leftLeg.position.set(-0.4, 0.3, 0);
+        
+        const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
+        rightLeg.position.set(0.4, 0.3, 0);
+        
+        // Add all parts
         group.add(body);
-        group.add(leftEye);
-        group.add(rightEye);
+        group.add(leftEye, leftPupil);
+        group.add(rightEye, rightPupil);
+        group.add(mouth);
+        group.add(leftArm, rightArm);
+        group.add(leftLeg, rightLeg);
+        
+        // Store for animation
+        this.bodyParts = {
+            body: body,
+            leftArm: leftArm,
+            rightArm: rightArm,
+            leftLeg: leftLeg,
+            rightLeg: rightLeg
+        };
         
         this.mesh = group;
         this.mesh.userData = { isNPC: true, npc: this };
@@ -140,21 +191,89 @@ class NPC {
     }
     
     updateAnimation(deltaTime) {
-        if (!this.mesh) return;
+        if (!this.mesh || !this.bodyParts) return;
         
-        // Bob animation
         const time = Date.now() * 0.001;
-        const bobAmount = Math.sin(time * this.bobSpeed + this.bobOffset) * 0.1;
         
+        // Bob animation for body
+        const bobAmount = Math.sin(time * this.bobSpeed + this.bobOffset) * 0.1;
         this.mesh.position.y = this.position.y + bobAmount;
         
-        // Slight rotation animation
+        // Enhanced animations based on movement
         if (this.isMoving) {
-            const rotationAmount = Math.sin(time * this.bobSpeed * 2 + this.bobOffset) * 0.1;
-            this.mesh.rotation.z = rotationAmount;
+            // Walking animation
+            const walkCycle = time * this.bobSpeed * 3 + this.bobOffset;
+            
+            // Arm swinging
+            if (this.bodyParts.leftArm) {
+                this.bodyParts.leftArm.rotation.x = Math.sin(walkCycle) * 0.5;
+                this.bodyParts.rightArm.rotation.x = Math.sin(walkCycle + Math.PI) * 0.5;
+            }
+            
+            // Leg movement
+            if (this.bodyParts.leftLeg) {
+                this.bodyParts.leftLeg.rotation.x = Math.sin(walkCycle) * 0.3;
+                this.bodyParts.rightLeg.rotation.x = Math.sin(walkCycle + Math.PI) * 0.3;
+            }
+            
+            // Body sway
+            const swayAmount = Math.sin(time * this.bobSpeed * 2 + this.bobOffset) * 0.08;
+            this.mesh.rotation.z = swayAmount;
+            
+            // Body bounce
+            if (this.bodyParts.body) {
+                this.bodyParts.body.scale.y = 1 + Math.sin(walkCycle * 2) * 0.05;
+                this.bodyParts.body.scale.x = 1 - Math.sin(walkCycle * 2) * 0.02;
+                this.bodyParts.body.scale.z = 1 - Math.sin(walkCycle * 2) * 0.02;
+            }
+            
         } else {
-            // Return to neutral rotation when not moving
+            // Idle animations
+            const idleCycle = time * this.bobSpeed * 0.5 + this.bobOffset;
+            
+            // Gentle arm movement
+            if (this.bodyParts.leftArm) {
+                this.bodyParts.leftArm.rotation.x = Math.sin(idleCycle) * 0.1;
+                this.bodyParts.rightArm.rotation.x = Math.sin(idleCycle + Math.PI) * 0.1;
+            }
+            
+            // Return legs to neutral
+            if (this.bodyParts.leftLeg) {
+                this.bodyParts.leftLeg.rotation.x *= 0.95;
+                this.bodyParts.rightLeg.rotation.x *= 0.95;
+            }
+            
+            // Return body to neutral rotation
             this.mesh.rotation.z *= 0.95;
+            
+            // Gentle breathing animation
+            if (this.bodyParts.body) {
+                this.bodyParts.body.scale.y = 1 + Math.sin(idleCycle * 0.5) * 0.02;
+                this.bodyParts.body.scale.x = 1 - Math.sin(idleCycle * 0.5) * 0.01;
+                this.bodyParts.body.scale.z = 1 - Math.sin(idleCycle * 0.5) * 0.01;
+            }
+        }
+        
+        // Random blink animation
+        if (Math.random() < 0.005) { // 0.5% chance per frame
+            this.blink();
+        }
+    }
+    
+    blink() {
+        // Simple blink by scaling eyes
+        if (this.bodyParts && this.mesh) {
+            const eyes = this.mesh.children.filter(child => 
+                child.material && child.material.color && 
+                child.material.color.getHex() === 0xffffff
+            );
+            
+            eyes.forEach(eye => {
+                eye.scale.y = 0.1;
+                setTimeout(() => {
+                    eye.scale.y = 1;
+                }, 100);
+            });
         }
     }
     

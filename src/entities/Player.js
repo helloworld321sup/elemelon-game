@@ -18,9 +18,16 @@ class Player {
         // Movement properties
         this.speed = 10;
         this.jumpSpeed = 8;
-        this.runMultiplier = 1.5;
+        this.runMultiplier = 2.0; // Increased sprint speed
         this.isGrounded = true;
         this.gravity = -25;
+        
+        // Stamina system
+        this.maxStamina = 100;
+        this.stamina = 100;
+        this.staminaDrainRate = 30; // Stamina per second when sprinting
+        this.staminaRegenRate = 20; // Stamina per second when not sprinting
+        this.minStaminaToSprint = 10; // Minimum stamina needed to start sprinting
         
         // Camera properties
         this.camera = null;
@@ -150,13 +157,33 @@ class Player {
             movement.normalize();
         }
         
+        // Handle stamina and sprinting
+        const isTryingToSprint = input.running;
+        const canSprint = this.stamina >= this.minStaminaToSprint;
+        const isSprinting = isTryingToSprint && canSprint && movement.length() > 0;
+        
+        // Update stamina
+        if (isSprinting) {
+            this.stamina -= this.staminaDrainRate * deltaTime;
+            this.stamina = Math.max(0, this.stamina);
+        } else {
+            this.stamina += this.staminaRegenRate * deltaTime;
+            this.stamina = Math.min(this.maxStamina, this.stamina);
+        }
+        
         // Apply speed
         let currentSpeed = this.speed;
-        if (input.running) {
+        if (isSprinting) {
             currentSpeed *= this.runMultiplier;
         }
         
         movement.multiplyScalar(currentSpeed * deltaTime);
+        
+        // Check collision with scene manager
+        if (this.game.sceneManager && movement.length() > 0) {
+            const validMovement = this.game.sceneManager.getValidMovement(this.position, movement);
+            movement.copy(validMovement);
+        }
         
         // Apply gravity
         this.velocity.y += this.gravity * deltaTime;

@@ -57,11 +57,35 @@
                 </div>
             </div>
 
+            <!-- Sprint/Stamina Bar (Below Health) -->
+            <div id="sprintBar" class="ui-element sprint-bar">
+                <div class="sprint-label">STAMINA</div>
+                <div class="sprint-bar-bg">
+                    <div class="sprint-bar-fill" id="sprintBarFill"></div>
+                </div>
+                <div class="sprint-text" id="sprintText">100%</div>
+            </div>
+
             <!-- Tokens Display (Top Left) -->
             <div id="tokensDisplay" class="ui-element tokens">
                 <div class="token-icon">🪙</div>
                 <span id="tokenCount">20</span>
                 <span class="token-label">Elemelon Tokens</span>
+            </div>
+
+            <!-- Quest/Task Display (Top Center) -->
+            <div id="questDisplay" class="ui-element quest-display">
+                <div class="quest-header">
+                    <div class="quest-icon">📜</div>
+                    <div class="quest-title" id="questTitle">Current Quest</div>
+                </div>
+                <div class="quest-description" id="questDescription">Explore the grey world and talk to NPCs</div>
+                <div class="quest-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="questProgress" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text" id="questProgressText">0/1</div>
+                </div>
             </div>
 
             <!-- Inventory (Bottom Center) -->

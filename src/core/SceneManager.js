@@ -89,8 +89,11 @@ class SceneManager {
     }
     
     createBuildings() {
-        const buildingCount = 50;
-        const citySize = 200;
+        const buildingCount = 200; // Much more buildings
+        const citySize = 1000; // 5x larger world
+        
+        // Create collision detection array
+        this.collisionObjects = this.collisionObjects || [];
         
         for (let i = 0; i < buildingCount; i++) {
             const building = this.createBuilding();
@@ -100,11 +103,16 @@ class SceneManager {
             building.position.z = (Math.random() - 0.5) * citySize;
             
             // Ensure buildings don't overlap with player spawn area
-            if (building.position.x > -20 && building.position.x < 20 && 
-                building.position.z > -20 && building.position.z < 20) {
-                building.position.x += Math.sign(building.position.x) * 30;
-                building.position.z += Math.sign(building.position.z) * 30;
+            if (building.position.x > -50 && building.position.x < 50 && 
+                building.position.z > -50 && building.position.z < 50) {
+                building.position.x += Math.sign(building.position.x) * 80;
+                building.position.z += Math.sign(building.position.z) * 80;
             }
+            
+            // Add collision data
+            building.userData.isCollidable = true;
+            building.userData.boundingBox = new THREE.Box3().setFromObject(building);
+            this.collisionObjects.push(building);
             
             this.cityObjects.push(building);
             this.gameEngine.addToScene(building);
@@ -416,6 +424,52 @@ class SceneManager {
     switchToScene(sceneName) {
         this.currentScene = sceneName;
         console.log(`🎬 Switched to ${sceneName} scene`);
+    }
+    
+    // Collision Detection System
+    checkCollision(playerPosition, movementVector) {
+        const playerRadius = 1.5; // Player collision radius
+        const newPosition = playerPosition.clone().add(movementVector);
+        
+        // Create player bounding box
+        const playerBox = new THREE.Box3().setFromCenterAndSize(
+            newPosition,
+            new THREE.Vector3(playerRadius * 2, 4, playerRadius * 2)
+        );
+        
+        // Check collision with all collidable objects
+        for (const object of this.collisionObjects || []) {
+            if (object.userData.boundingBox && object.userData.boundingBox.intersectsBox(playerBox)) {
+                return true; // Collision detected
+            }
+        }
+        
+        return false; // No collision
+    }
+    
+    getValidMovement(playerPosition, desiredMovement) {
+        // Try the full movement first
+        if (!this.checkCollision(playerPosition, desiredMovement)) {
+            return desiredMovement;
+        }
+        
+        // Try sliding along walls - check X and Z movement separately
+        const xMovement = new THREE.Vector3(desiredMovement.x, 0, 0);
+        const zMovement = new THREE.Vector3(0, 0, desiredMovement.z);
+        
+        let validMovement = new THREE.Vector3();
+        
+        // Try X movement
+        if (!this.checkCollision(playerPosition, xMovement)) {
+            validMovement.add(xMovement);
+        }
+        
+        // Try Z movement
+        if (!this.checkCollision(playerPosition, zMovement)) {
+            validMovement.add(zMovement);
+        }
+        
+        return validMovement;
     }
     
     // Cleanup
