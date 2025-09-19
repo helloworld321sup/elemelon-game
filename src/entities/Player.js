@@ -13,6 +13,9 @@ class Player {
         this.position = new THREE.Vector3(0, 2, 10);
         this.velocity = new THREE.Vector3();
         this.health = 8; // 8 hearts
+        
+        // Initialize player on terrain after position is set
+        this.initializeOnTerrain();
         this.tokens = 20;
         
         // Movement properties
@@ -303,6 +306,14 @@ class Player {
         const height3 = Math.sin(x * scale3) * Math.cos(z * scale3) * 3;
         
         return height1 + height2 + height3;
+    }
+    
+    initializeOnTerrain() {
+        // Set player to correct height on terrain
+        const terrainHeight = this.getTerrainHeight(this.position.x, this.position.z);
+        this.position.y = terrainHeight + 2; // Player height + buffer
+        this.isGrounded = true;
+        console.log(`👤 Player initialized on terrain at height: ${this.position.y}`);
     }
     
     updateStaminaUI() {

@@ -416,7 +416,8 @@ class CutsceneManager {
         
         if (!this.scene || !this.camera) {
             console.error('🎬 Cannot create 3D cutscene - missing scene or camera');
-            this.endCutscene();
+            console.log('🎬 Falling back to text cutscene...');
+            await this.playTextCutscene();
             return;
         }
         
@@ -742,6 +743,29 @@ class CutsceneManager {
             }
         });
         this.cutsceneObjects = [];
+    }
+    
+    // Fallback text cutscene for when 3D fails
+    async playTextCutscene() {
+        console.log('🎬 Playing fallback text cutscene...');
+        
+        const messages = [
+            "After a long day at work, you walk home through the empty streets...",
+            "Suddenly, a black van screeches to a halt beside you!",
+            "You wake up in a dark garage, tied to a chair...",
+            "Dr. Hegesh: 'Welcome to your new reality. Take this pill.'",
+            "You have no choice but to swallow the grey pill...",
+            "The world around you begins to fade to grey...",
+            "You find yourself in a strange, colorless world...",
+            "Welcome to the Elemelon World. Find the elemental temples to restore color!"
+        ];
+        
+        for (let i = 0; i < messages.length; i++) {
+            await this.showDialogue('', messages[i]);
+            await this.wait(2000);
+        }
+        
+        this.endCutscene();
     }
     
     // Utility methods

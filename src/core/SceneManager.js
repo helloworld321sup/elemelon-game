@@ -695,44 +695,332 @@ class SceneManager {
     createTemple(type, color) {
         const templeGroup = new THREE.Group();
         
-        // Main temple structure
+        // Create temple based on type with Zelda-style architecture
+        switch (type) {
+            case 'lightning':
+                this.createLightningTemple(templeGroup, color);
+                break;
+            case 'fire':
+                this.createFireTemple(templeGroup, color);
+                break;
+            case 'water':
+                this.createWaterTemple(templeGroup, color);
+                break;
+            case 'wind':
+                this.createWindTemple(templeGroup, color);
+                break;
+            default:
+                this.createDefaultTemple(templeGroup, color);
+        }
+        
+        // Add temple data
+        templeGroup.userData = {
+            type: type,
+            isTemple: true,
+            isCollidable: true,
+            boundingBox: new THREE.Box3().setFromObject(templeGroup)
+        };
+        
+        return templeGroup;
+    }
+    
+    // Lightning Temple - Ancient ruins with towering structures
+    createLightningTemple(templeGroup, color) {
+        const stoneColor = 0x606060; // Grey stone
+        
+        // Main temple platform
+        const platformGeometry = new THREE.CylinderGeometry(40, 45, 8, 16);
+        const platformMaterial = new THREE.MeshLambertMaterial({ color: stoneColor });
+        const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+        platform.position.y = 4;
+        platform.receiveShadow = true;
+        templeGroup.add(platform);
+        
+        // Central tower structure
+        const towerGeometry = new THREE.CylinderGeometry(12, 15, 35, 12);
+        const tower = new THREE.Mesh(towerGeometry, platformMaterial);
+        tower.position.y = 25;
+        tower.castShadow = true;
+        tower.receiveShadow = true;
+        templeGroup.add(tower);
+        
+        // Broken stone structures around the platform
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const distance = 30 + Math.random() * 15;
+            
+            // Broken pillars of varying heights
+            const pillarHeight = 15 + Math.random() * 20;
+            const pillarGeometry = new THREE.CylinderGeometry(2 + Math.random(), 2.5 + Math.random(), pillarHeight, 8);
+            const pillar = new THREE.Mesh(pillarGeometry, platformMaterial);
+            
+            pillar.position.x = Math.cos(angle) * distance;
+            pillar.position.z = Math.sin(angle) * distance;
+            pillar.position.y = pillarHeight / 2;
+            
+            // Random tilt for broken appearance
+            pillar.rotation.x = (Math.random() - 0.5) * 0.3;
+            pillar.rotation.z = (Math.random() - 0.5) * 0.3;
+            
+            pillar.castShadow = true;
+            pillar.receiveShadow = true;
+            templeGroup.add(pillar);
+        }
+        
+        // Stone stairs leading up
+        for (let i = 0; i < 6; i++) {
+            const stepGeometry = new THREE.BoxGeometry(20 - i * 2, 2, 8);
+            const step = new THREE.Mesh(stepGeometry, platformMaterial);
+            step.position.y = i * 2 + 1;
+            step.position.z = -25 + i * 2;
+            step.receiveShadow = true;
+            templeGroup.add(step);
+        }
+    }
+    
+    // Fire Temple - Multi-level volcanic structure
+    createFireTemple(templeGroup, color) {
+        const lavaColor = 0x4a4a4a; // Dark grey (no color in grey world)
+        const stoneColor = 0x555555;
+        
+        // Base volcanic rock formation
+        const baseGeometry = new THREE.ConeGeometry(50, 20, 12);
+        const baseMaterial = new THREE.MeshLambertMaterial({ color: stoneColor });
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        base.position.y = 10;
+        base.receiveShadow = true;
+        templeGroup.add(base);
+        
+        // Multiple temple levels built into the volcano
+        for (let level = 0; level < 4; level++) {
+            const levelHeight = 8;
+            const levelRadius = 20 - level * 3;
+            const levelY = 15 + level * levelHeight;
+            
+            // Temple level structure
+            const levelGeometry = new THREE.CylinderGeometry(levelRadius, levelRadius + 2, levelHeight, 12);
+            const levelMesh = new THREE.Mesh(levelGeometry, baseMaterial);
+            levelMesh.position.y = levelY;
+            levelMesh.castShadow = true;
+            levelMesh.receiveShadow = true;
+            templeGroup.add(levelMesh);
+            
+            // Arched openings around each level
+            for (let arch = 0; arch < 4; arch++) {
+                const archAngle = (arch / 4) * Math.PI * 2;
+                const archX = Math.cos(archAngle) * (levelRadius - 3);
+                const archZ = Math.sin(archAngle) * (levelRadius - 3);
+                
+                // Create arch opening (visual only)
+                const archGeometry = new THREE.TorusGeometry(3, 1, 8, 16, Math.PI);
+                const archMesh = new THREE.Mesh(archGeometry, baseMaterial);
+                archMesh.position.set(archX, levelY, archZ);
+                archMesh.rotation.y = archAngle;
+                archMesh.castShadow = true;
+                templeGroup.add(archMesh);
+            }
+        }
+        
+        // Spiraling walkways
+        const walkwayPoints = [];
+        for (let i = 0; i < 50; i++) {
+            const angle = (i / 50) * Math.PI * 4; // Two full spirals
+            const radius = 30 - (i / 50) * 15;
+            const height = 5 + (i / 50) * 40;
+            
+            walkwayPoints.push(new THREE.Vector3(
+                Math.cos(angle) * radius,
+                height,
+                Math.sin(angle) * radius
+            ));
+        }
+        
+        // Create walkway geometry
+        const walkwayGeometry = new THREE.TubeGeometry(
+            new THREE.CatmullRomCurve3(walkwayPoints), 
+            50, 2, 8, false
+        );
+        const walkway = new THREE.Mesh(walkwayGeometry, baseMaterial);
+        walkway.castShadow = true;
+        walkway.receiveShadow = true;
+        templeGroup.add(walkway);
+    }
+    
+    // Water Temple - Elegant structure with flowing elements
+    createWaterTemple(templeGroup, color) {
+        const stoneColor = 0x505050;
+        const waterColor = 0x404040; // Dark grey water
+        
+        // Main temple structure - elegant and curved
+        const mainGeometry = new THREE.SphereGeometry(25, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.7);
+        const mainMaterial = new THREE.MeshLambertMaterial({ color: stoneColor });
+        const mainStructure = new THREE.Mesh(mainGeometry, mainMaterial);
+        mainStructure.position.y = 15;
+        mainStructure.castShadow = true;
+        mainStructure.receiveShadow = true;
+        templeGroup.add(mainStructure);
+        
+        // Flowing water channels (represented as curved paths)
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const channelPoints = [];
+            
+            for (let j = 0; j < 20; j++) {
+                const t = j / 19;
+                const radius = 40 - t * 15;
+                const height = 1 + Math.sin(t * Math.PI * 2) * 2;
+                
+                channelPoints.push(new THREE.Vector3(
+                    Math.cos(angle + t * 0.5) * radius,
+                    height,
+                    Math.sin(angle + t * 0.5) * radius
+                ));
+            }
+            
+            const channelGeometry = new THREE.TubeGeometry(
+                new THREE.CatmullRomCurve3(channelPoints),
+                20, 1, 6, false
+            );
+            const channel = new THREE.Mesh(channelGeometry, new THREE.MeshLambertMaterial({ color: waterColor }));
+            channel.receiveShadow = true;
+            templeGroup.add(channel);
+        }
+        
+        // Elegant pillars with curved tops
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const distance = 35;
+            
+            // Pillar base
+            const pillarGeometry = new THREE.CylinderGeometry(1.5, 2, 25, 12);
+            const pillar = new THREE.Mesh(pillarGeometry, mainMaterial);
+            pillar.position.x = Math.cos(angle) * distance;
+            pillar.position.z = Math.sin(angle) * distance;
+            pillar.position.y = 12.5;
+            pillar.castShadow = true;
+            pillar.receiveShadow = true;
+            templeGroup.add(pillar);
+            
+            // Curved pillar top
+            const capGeometry = new THREE.SphereGeometry(2, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.5);
+            const cap = new THREE.Mesh(capGeometry, mainMaterial);
+            cap.position.x = Math.cos(angle) * distance;
+            cap.position.z = Math.sin(angle) * distance;
+            cap.position.y = 25;
+            cap.castShadow = true;
+            templeGroup.add(cap);
+        }
+        
+        // Central water pool
+        const poolGeometry = new THREE.CylinderGeometry(15, 15, 2, 16);
+        const pool = new THREE.Mesh(poolGeometry, new THREE.MeshLambertMaterial({ color: waterColor }));
+        pool.position.y = 1;
+        pool.receiveShadow = true;
+        templeGroup.add(pool);
+    }
+    
+    // Wind Temple - Floating ship-like structure
+    createWindTemple(templeGroup, color) {
+        const shipColor = 0x4a4a4a;
+        const sailColor = 0x555555;
+        
+        // Main ship hull
+        const hullGeometry = new THREE.CylinderGeometry(8, 12, 60, 12);
+        const hullMaterial = new THREE.MeshLambertMaterial({ color: shipColor });
+        const hull = new THREE.Mesh(hullGeometry, hullMaterial);
+        hull.rotation.z = Math.PI / 2; // Rotate to be horizontal
+        hull.position.y = 25; // Floating in air
+        hull.castShadow = true;
+        hull.receiveShadow = true;
+        templeGroup.add(hull);
+        
+        // Ship deck
+        const deckGeometry = new THREE.CylinderGeometry(10, 10, 2, 16);
+        const deck = new THREE.Mesh(deckGeometry, hullMaterial);
+        deck.position.y = 30;
+        deck.castShadow = true;
+        deck.receiveShadow = true;
+        templeGroup.add(deck);
+        
+        // Masts and rigging
+        for (let i = 0; i < 3; i++) {
+            const mastGeometry = new THREE.CylinderGeometry(0.5, 0.5, 25, 8);
+            const mast = new THREE.Mesh(mastGeometry, new THREE.MeshLambertMaterial({ color: 0x3a3a3a }));
+            mast.position.x = (i - 1) * 15;
+            mast.position.y = 42.5;
+            mast.castShadow = true;
+            templeGroup.add(mast);
+            
+            // Sails (tattered and grey)
+            const sailGeometry = new THREE.PlaneGeometry(12, 15);
+            const sailMaterial = new THREE.MeshLambertMaterial({ 
+                color: sailColor, 
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.8
+            });
+            const sail = new THREE.Mesh(sailGeometry, sailMaterial);
+            sail.position.x = (i - 1) * 15;
+            sail.position.y = 40;
+            sail.position.z = 5;
+            sail.rotation.y = Math.PI / 6;
+            sail.castShadow = true;
+            templeGroup.add(sail);
+        }
+        
+        // Floating stone platforms around the ship
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const distance = 40 + Math.random() * 20;
+            const height = 15 + Math.random() * 10;
+            
+            const platformGeometry = new THREE.CylinderGeometry(
+                5 + Math.random() * 3, 
+                6 + Math.random() * 3, 
+                3, 8
+            );
+            const platform = new THREE.Mesh(platformGeometry, hullMaterial);
+            platform.position.x = Math.cos(angle) * distance;
+            platform.position.z = Math.sin(angle) * distance;
+            platform.position.y = height;
+            platform.castShadow = true;
+            platform.receiveShadow = true;
+            templeGroup.add(platform);
+        }
+        
+        // Chains connecting platforms to ship
+        for (let i = 0; i < 4; i++) {
+            const angle = (i / 4) * Math.PI * 2;
+            const chainPoints = [];
+            
+            // Create curved chain path
+            for (let j = 0; j < 15; j++) {
+                const t = j / 14;
+                const x = Math.cos(angle) * (20 + t * 25);
+                const z = Math.sin(angle) * (20 + t * 25);
+                const y = 25 - Math.sin(t * Math.PI) * 8; // Hanging curve
+                
+                chainPoints.push(new THREE.Vector3(x, y, z));
+            }
+            
+            const chainGeometry = new THREE.TubeGeometry(
+                new THREE.CatmullRomCurve3(chainPoints),
+                15, 0.2, 4, false
+            );
+            const chain = new THREE.Mesh(chainGeometry, new THREE.MeshLambertMaterial({ color: 0x333333 }));
+            chain.castShadow = true;
+            templeGroup.add(chain);
+        }
+    }
+    
+    createDefaultTemple(templeGroup, color) {
+        // Fallback simple temple
         const templeGeometry = new THREE.BoxGeometry(20, 15, 20);
-        const templeMaterial = new THREE.MeshLambertMaterial({ color: color });
+        const templeMaterial = new THREE.MeshLambertMaterial({ color: 0x555555 });
         const templeMain = new THREE.Mesh(templeGeometry, templeMaterial);
         templeMain.position.y = 7.5;
         templeMain.castShadow = true;
-        
-        // Temple pillars
-        const pillarGeometry = new THREE.CylinderGeometry(1, 1, 15, 8);
-        const pillarMaterial = new THREE.MeshLambertMaterial({ color: color });
-        
-        const pillarPositions = [
-            { x: -8, z: -8 }, { x: 8, z: -8 },
-            { x: -8, z: 8 }, { x: 8, z: 8 }
-        ];
-        
-        pillarPositions.forEach(pos => {
-            const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
-            pillar.position.set(pos.x, 7.5, pos.z);
-            pillar.castShadow = true;
-            templeGroup.add(pillar);
-        });
-        
-        // Temple roof
-        const roofGeometry = new THREE.ConeGeometry(15, 8, 4);
-        const roofMaterial = new THREE.MeshLambertMaterial({ color: color });
-        const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-        roof.position.y = 19;
-        roof.rotation.y = Math.PI / 4;
-        roof.castShadow = true;
-        
         templeGroup.add(templeMain);
-        templeGroup.add(roof);
-        
-        // Add temple data
-        templeGroup.userData = { type: type, isTemple: true };
-        
-        return templeGroup;
     }
     
     createShops() {
