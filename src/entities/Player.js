@@ -19,11 +19,14 @@ class Player {
         this.tokens = 20;
         
         // Movement properties
-        this.speed = 10;
-        this.jumpSpeed = 8;
-        this.runMultiplier = 2.0; // Increased sprint speed
+        this.speed = 12; // Increased base speed
+        this.jumpSpeed = 10;
+        this.runMultiplier = 1.8; // More balanced sprint speed
         this.isGrounded = true;
-        this.gravity = -25;
+        this.gravity = -30;
+        this.acceleration = 50; // Add acceleration for smoother movement
+        this.deceleration = 30; // Add deceleration
+        this.currentVelocity = new THREE.Vector3(); // Current movement velocity
         
         // Stamina system
         this.maxStamina = 100;
@@ -35,7 +38,10 @@ class Player {
         // Camera properties
         this.camera = null;
         this.cameraHeight = 1.8;
-        this.mouseSensitivity = 0.002;
+        this.mouseSensitivity = 0.003; // Slightly more responsive
+        this.cameraPitch = 0; // Track vertical camera rotation
+        this.maxPitch = Math.PI / 3; // Limit vertical look range
+        this.minPitch = -Math.PI / 3;
         
         // Weapons and inventory
         this.weapons = [null, null, null];
@@ -95,9 +101,13 @@ class Player {
     }
     
     initializeWeapons() {
-        // Player starts with no weapons - must buy from shops
-        this.weapons = [null, null, null];
+        // Player starts with a basic blaster for testing
+        this.weapons = [new BlasterWeapon(this.game), null, null];
         this.activeWeapon = 0;
+        
+        // Update UI to show equipped weapon
+        this.game.uiManager?.updateWeaponSlot(0, 'blaster');
+        this.game.uiManager?.updateWeaponSelection(0);
     }
     
     setupCollisionDetection() {
@@ -147,23 +157,23 @@ class Player {
         right.crossVectors(direction, new THREE.Vector3(0, 1, 0));
         right.normalize();
         
-        // Calculate movement vector
-        const movement = new THREE.Vector3();
+        // Calculate desired movement direction
+        const desiredDirection = new THREE.Vector3();
         
-        if (input.forward) movement.add(direction);
-        if (input.backward) movement.sub(direction);
-        if (input.left) movement.sub(right);
-        if (input.right) movement.add(right);
+        if (input.forward) desiredDirection.add(direction);
+        if (input.backward) desiredDirection.sub(direction);
+        if (input.left) desiredDirection.sub(right);
+        if (input.right) desiredDirection.add(right);
         
         // Normalize diagonal movement
-        if (movement.length() > 0) {
-            movement.normalize();
+        if (desiredDirection.length() > 0) {
+            desiredDirection.normalize();
         }
         
         // Handle stamina and sprinting
         const isTryingToSprint = input.running;
         const canSprint = this.stamina >= this.minStaminaToSprint;
-        const isSprinting = isTryingToSprint && canSprint && movement.length() > 0;
+        const isSprinting = isTryingToSprint && canSprint && desiredDirection.length() > 0;
         
         // Update stamina
         if (isSprinting) {
@@ -177,13 +187,21 @@ class Player {
         // Update stamina UI
         this.updateStaminaUI();
         
-        // Apply speed
-        let currentSpeed = this.speed;
+        // Calculate target speed
+        let targetSpeed = this.speed;
         if (isSprinting) {
-            currentSpeed *= this.runMultiplier;
+            targetSpeed *= this.runMultiplier;
         }
         
-        movement.multiplyScalar(currentSpeed * deltaTime);
+        // Calculate target velocity
+        const targetVelocity = desiredDirection.clone().multiplyScalar(targetSpeed);
+        
+        // Smooth acceleration/deceleration
+        const accelerationRate = desiredDirection.length() > 0 ? this.acceleration : this.deceleration;
+        this.currentVelocity.lerp(targetVelocity, accelerationRate * deltaTime);
+        
+        // Apply movement with smooth velocity
+        const movement = this.currentVelocity.clone().multiplyScalar(deltaTime);
         
         // Check collision with scene manager
         if (this.game.sceneManager && movement.length() > 0) {
@@ -302,16 +320,16 @@ class Player {
     // checkGrounded method removed - terrain following now handled in updateMovement
     
     getTerrainHeight(x, z) {
-        // Calculate terrain height using same formula as terrain generation
-        const scale1 = 0.02;
-        const scale2 = 0.05;
-        const scale3 = 0.1;
+        // Calculate terrain height using same formula as World.js terrain generation
+        const scale1 = 0.01;
+        const scale2 = 0.02;
+        const scale3 = 0.05;
         
-        const height1 = Math.sin(x * scale1) * Math.cos(z * scale1) * 15;
-        const height2 = Math.sin(x * scale2) * Math.cos(z * scale2) * 8;
-        const height3 = Math.sin(x * scale3) * Math.cos(z * scale3) * 3;
+        const height1 = Math.sin(x * scale1) * Math.cos(z * scale1) * 3;
+        const height2 = Math.sin(x * scale2) * Math.cos(z * scale2) * 1.5;
+        const height3 = Math.sin(x * scale3) * Math.cos(z * scale3) * 0.5;
         
-        return height1 + height2 + height3;
+        return (height1 + height2 + height3) * 0.3; // Match World.js scaling
     }
     
     initializeOnTerrain() {
@@ -361,7 +379,7 @@ class Player {
         if (weapon) {
             weapon.primaryFire();
         } else {
-            // No weapon - maybe punch or interact
+            // No weapon - try to interact with nearby objects
             this.interact();
         }
     }
@@ -376,7 +394,78 @@ class Player {
     interact() {
         if (this.nearbyInteractables.length > 0) {
             const target = this.nearbyInteractables[0];
-            this.game.sceneManager?.handleInteraction(target);
+            console.log('🔄 Interacting with:', target.userData?.type || 'unknown');
+            
+            // Handle different interaction types
+            if (target.userData) {
+                switch (target.userData.type) {
+                    case 'token':
+                        this.collectToken(target);
+                        break;
+                    case 'npc':
+                        this.talkToNPC(target);
+                        break;
+                    case 'shop':
+                        this.enterShop(target);
+                        break;
+                    case 'temple':
+                        this.enterTemple(target);
+                        break;
+                    default:
+                        this.game.sceneManager?.handleInteraction(target);
+                }
+            }
+        }
+    }
+    
+    collectToken(token) {
+        const value = token.userData.value || 1;
+        this.addTokens(value);
+        
+        // Remove token from scene
+        this.game.gameEngine.removeFromScene(token);
+        
+        // Remove from world's collision groups
+        const world = this.game.sceneManager;
+        if (world && world.collisionGroups && world.collisionGroups.triggers) {
+            const index = world.collisionGroups.triggers.indexOf(token);
+            if (index > -1) {
+                world.collisionGroups.triggers.splice(index, 1);
+            }
+        }
+        
+        console.log(`🪙 Collected ${value} tokens!`);
+    }
+    
+    talkToNPC(npc) {
+        console.log('💬 Talking to NPC...');
+        
+        // Show dialogue
+        const dialogues = [
+            "Welcome to the grey world, traveler!",
+            "The temples hold great power, but beware their guardians.",
+            "I've heard rumors of a way to restore color to our world.",
+            "The shops have weapons that might help you on your journey.",
+            "Dr. Hegesh's tower looms in the distance... avoid it for now."
+        ];
+        
+        const randomDialogue = dialogues[Math.floor(Math.random() * dialogues.length)];
+        this.game.uiManager?.showDialogue('Melon Citizen', randomDialogue);
+    }
+    
+    enterShop(shop) {
+        console.log('🏪 Entering shop...');
+        this.game.uiManager?.showDialogue('Shop Keeper', 'Welcome to my shop! What can I get for you today?');
+        // TODO: Implement shop interface
+    }
+    
+    enterTemple(temple) {
+        console.log('🏛️ Entering temple...');
+        
+        if (temple.userData.temple) {
+            temple.userData.temple.onPlayerEnter(this);
+        } else {
+            this.game.uiManager?.showDialogue('Temple Guardian', `You have entered the ${temple.userData.type} temple. Prepare yourself for the trials ahead!`);
         }
     }
     
@@ -563,7 +652,31 @@ class BlasterWeapon {
             this.ammo--;
             this.lastFire = 0;
             
-            // TODO: Create projectile and damage system
+            // Create projectile
+            this.createProjectile();
+            
+            // Play sound effect (when audio is enabled)
+            // this.game.audioManager?.playSound('blaster_fire');
+        }
+    }
+    
+    createProjectile() {
+        const player = this.game.sceneManager?.player;
+        if (!player) return;
+        
+        const startPos = player.getPosition().clone();
+        startPos.y += 1.5; // Fire from chest height
+        
+        const direction = this.game.gameEngine.getCameraDirection();
+        
+        // Create projectile
+        const projectile = new BlasterProjectile(this.game, startPos, direction);
+        
+        // Add to scene manager for updates
+        if (this.game.sceneManager.projectiles) {
+            this.game.sceneManager.projectiles.push(projectile);
+        } else {
+            this.game.sceneManager.projectiles = [projectile];
         }
     }
     
@@ -627,6 +740,148 @@ class GrapplingHookWeapon {
         // Release hook
         console.log('🪝 Grappling hook released!');
         this.isGrappling = false;
+    }
+}
+
+// Projectile system
+class BlasterProjectile {
+    constructor(game, startPos, direction) {
+        this.game = game;
+        this.position = startPos.clone();
+        this.direction = direction.normalize();
+        this.speed = 50;
+        this.damage = 2;
+        this.maxDistance = 100;
+        this.traveledDistance = 0;
+        this.isActive = true;
+        
+        this.createMesh();
+    }
+    
+    createMesh() {
+        // Create projectile visual
+        const geometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x00ff00,
+            emissive: 0x00ff00,
+            emissiveIntensity: 0.5
+        });
+        
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.position.copy(this.position);
+        
+        // Add glow effect
+        const glowGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+        const glowMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ff00,
+            transparent: true,
+            opacity: 0.3
+        });
+        
+        this.glow = new THREE.Mesh(glowGeometry, glowMaterial);
+        this.glow.position.copy(this.position);
+        
+        this.game.gameEngine.addToScene(this.mesh);
+        this.game.gameEngine.addToScene(this.glow);
+    }
+    
+    update(deltaTime) {
+        if (!this.isActive) return;
+        
+        // Move projectile
+        const movement = this.direction.clone().multiplyScalar(this.speed * deltaTime);
+        this.position.add(movement);
+        this.traveledDistance += movement.length();
+        
+        // Update mesh positions
+        this.mesh.position.copy(this.position);
+        this.glow.position.copy(this.position);
+        
+        // Check for collisions
+        this.checkCollisions();
+        
+        // Check max distance
+        if (this.traveledDistance >= this.maxDistance) {
+            this.destroy();
+        }
+    }
+    
+    checkCollisions() {
+        // Simple collision detection with world objects
+        const world = this.game.sceneManager;
+        if (!world) return;
+        
+        // Check collision with NPCs
+        if (world.npcs) {
+            world.npcs.forEach(npc => {
+                if (this.position.distanceTo(npc.position) < 2) {
+                    this.hitTarget(npc);
+                }
+            });
+        }
+        
+        // Check collision with buildings
+        if (world.buildings) {
+            world.buildings.forEach(building => {
+                if (this.position.distanceTo(building.position) < 10) {
+                    this.destroy();
+                }
+            });
+        }
+    }
+    
+    hitTarget(target) {
+        console.log('🎯 Projectile hit target!');
+        
+        // Deal damage if target has health
+        if (target.takeDamage) {
+            target.takeDamage(this.damage);
+        }
+        
+        // Create hit effect
+        this.createHitEffect();
+        
+        this.destroy();
+    }
+    
+    createHitEffect() {
+        // Create simple hit effect
+        const effectGeometry = new THREE.SphereGeometry(1, 8, 8);
+        const effectMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffff00,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        const effect = new THREE.Mesh(effectGeometry, effectMaterial);
+        effect.position.copy(this.position);
+        
+        this.game.gameEngine.addToScene(effect);
+        
+        // Remove effect after short time
+        setTimeout(() => {
+            this.game.gameEngine.removeFromScene(effect);
+        }, 200);
+    }
+    
+    destroy() {
+        this.isActive = false;
+        
+        if (this.mesh) {
+            this.game.gameEngine.removeFromScene(this.mesh);
+        }
+        if (this.glow) {
+            this.game.gameEngine.removeFromScene(this.glow);
+        }
+        
+        // Remove from projectiles array
+        const projectiles = this.game.sceneManager.projectiles;
+        if (projectiles) {
+            const index = projectiles.indexOf(this);
+            if (index > -1) {
+                projectiles.splice(index, 1);
+            }
+        }
     }
 }
 

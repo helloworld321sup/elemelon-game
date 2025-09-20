@@ -13,6 +13,7 @@ class SceneManager {
         this.player = null;
         this.npcs = [];
         this.enemies = [];
+        this.projectiles = []; // Add projectile tracking
         
         // Environment objects
         this.cityObjects = [];
@@ -1140,6 +1141,12 @@ class SceneManager {
         
         // Update enemies
         this.enemies.forEach(enemy => enemy.update(deltaTime));
+        
+        // Update projectiles
+        this.projectiles.forEach(projectile => projectile.update(deltaTime));
+        
+        // Clean up destroyed projectiles
+        this.projectiles = this.projectiles.filter(p => p.isActive);
         
         // Update world systems
         this.updateWorldSystems(deltaTime);

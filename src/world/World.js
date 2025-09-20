@@ -61,35 +61,65 @@ class World {
         // Place world objects
         this.placeWorldObjects();
         
+        // Generate temples
+        this.generateTemples();
+        
+        // Generate shops
+        this.generateShops();
+        
+        // Generate NPCs
+        this.generateNPCs();
+        
         this.isGenerated = true;
         console.log('🌍 World generation complete');
     }
     
     generateTerrain() {
-        // Create base terrain
-        const terrainGeometry = new THREE.PlaneGeometry(this.size, this.size, 100, 100);
+        // Create base terrain - mostly flat with subtle variations
+        const terrainGeometry = new THREE.PlaneGeometry(this.size, this.size, 200, 200);
         
-        // Add height variation
+        // Add subtle, smooth height variation using noise
         const vertices = terrainGeometry.attributes.position.array;
         for (let i = 0; i < vertices.length; i += 3) {
-            // Add subtle height variation
-            vertices[i + 1] = Math.random() * 2 - 1; // Y coordinate
+            const x = vertices[i];
+            const z = vertices[i + 2];
+            
+            // Create smooth, subtle terrain variations
+            const height = this.getTerrainHeightAt(x, z) * 0.3; // Much more subtle
+            vertices[i + 1] = height; // Y coordinate
         }
         
         terrainGeometry.attributes.position.needsUpdate = true;
         terrainGeometry.computeVertexNormals();
         
+        // Create more interesting terrain material with texture-like appearance
         const terrainMaterial = new THREE.MeshLambertMaterial({
-            color: 0x606060, // Grey terrain
+            color: 0x4a5d4a, // Darker grey-green
             wireframe: false
         });
         
         this.terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
         this.terrain.rotation.x = -Math.PI / 2;
         this.terrain.receiveShadow = true;
+        this.terrain.position.y = 0;
         
         this.gameEngine.addToScene(this.terrain);
         this.collisionGroups.static.push(this.terrain);
+        
+        console.log('🏔️ Generated smooth terrain');
+    }
+    
+    getTerrainHeightAt(x, z) {
+        // Use same formula as Player.js for consistency but much more subtle
+        const scale1 = 0.01;
+        const scale2 = 0.02;
+        const scale3 = 0.05;
+        
+        const height1 = Math.sin(x * scale1) * Math.cos(z * scale1) * 3;
+        const height2 = Math.sin(x * scale2) * Math.cos(z * scale2) * 1.5;
+        const height3 = Math.sin(x * scale3) * Math.cos(z * scale3) * 0.5;
+        
+        return height1 + height2 + height3;
     }
     
     generateCity() {
@@ -179,6 +209,10 @@ class World {
             
             if (attempts < 50) {
                 building.position.copy(position);
+                // Position building on terrain
+                const terrainHeight = this.getTerrainHeightAt(position.x, position.z);
+                building.position.y = terrainHeight;
+                
                 this.buildings.push(building);
                 this.gameEngine.addToScene(building);
                 this.collisionGroups.static.push(building);
@@ -189,16 +223,44 @@ class World {
     }
     
     createRandomBuilding() {
-        const width = 8 + Math.random() * 15;
-        const height = 15 + Math.random() * 40;
-        const depth = 8 + Math.random() * 15;
+        const width = 6 + Math.random() * 12;
+        const height = 10 + Math.random() * 25;
+        const depth = 6 + Math.random() * 12;
         
         const buildingGroup = new THREE.Group();
         
-        // Main building structure
+        // Choose building style
+        const buildingTypes = ['modern', 'industrial', 'residential'];
+        const buildingType = buildingTypes[Math.floor(Math.random() * buildingTypes.length)];
+        
+        // Create main structure based on type
+        if (buildingType === 'modern') {
+            this.createModernBuilding(buildingGroup, width, height, depth);
+        } else if (buildingType === 'industrial') {
+            this.createIndustrialBuilding(buildingGroup, width, height, depth);
+        } else {
+            this.createResidentialBuilding(buildingGroup, width, height, depth);
+        }
+        
+        // Position will be set when placed in the world
+        
+        // Add collision data
+        buildingGroup.userData = {
+            type: 'building',
+            buildingType: buildingType,
+            bounds: { width, height, depth },
+            collidable: true,
+            radius: Math.max(width, depth) / 2 + 2
+        };
+        
+        return buildingGroup;
+    }
+    
+    createModernBuilding(group, width, height, depth) {
+        // Main structure
         const geometry = new THREE.BoxGeometry(width, height, depth);
         const material = new THREE.MeshLambertMaterial({
-            color: new THREE.Color().setHSL(0, 0, 0.2 + Math.random() * 0.4)
+            color: new THREE.Color().setHSL(0.6, 0.1, 0.3 + Math.random() * 0.2) // Blue-grey tones
         });
         
         const building = new THREE.Mesh(geometry, material);
@@ -206,51 +268,139 @@ class World {
         building.castShadow = true;
         building.receiveShadow = true;
         
-        buildingGroup.add(building);
+        group.add(building);
         
-        // Add building details
-        this.addBuildingDetails(buildingGroup, width, height, depth);
+        // Add glass panels
+        this.addGlassPanels(group, width, height, depth);
         
-        // Add collision data
-        buildingGroup.userData = {
-            type: 'building',
-            bounds: { width, height, depth },
-            collidable: true
-        };
-        
-        return buildingGroup;
+        // Add modern details
+        this.addModernDetails(group, width, height, depth);
     }
     
-    addBuildingDetails(buildingGroup, width, height, depth) {
-        // Add windows
-        const windowCount = Math.floor(height / 4);
-        const windowMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0x444444,
-            transparent: true,
-            opacity: 0.8
+    createIndustrialBuilding(group, width, height, depth) {
+        // Main structure - more angular
+        const geometry = new THREE.BoxGeometry(width, height * 0.8, depth);
+        const material = new THREE.MeshLambertMaterial({
+            color: new THREE.Color().setHSL(0.1, 0.2, 0.25 + Math.random() * 0.15) // Brown-grey
         });
         
-        for (let floor = 1; floor <= windowCount; floor++) {
-            // Front windows
-            for (let w = 0; w < Math.floor(width / 3); w++) {
-                const windowGeometry = new THREE.PlaneGeometry(1.5, 1.5);
+        const building = new THREE.Mesh(geometry, material);
+        building.position.y = (height * 0.8) / 2;
+        building.castShadow = true;
+        building.receiveShadow = true;
+        
+        group.add(building);
+        
+        // Add industrial elements
+        this.addIndustrialDetails(group, width, height, depth);
+    }
+    
+    createResidentialBuilding(group, width, height, depth) {
+        // Main structure
+        const geometry = new THREE.BoxGeometry(width, height, depth);
+        const material = new THREE.MeshLambertMaterial({
+            color: new THREE.Color().setHSL(0.05, 0.3, 0.35 + Math.random() * 0.2) // Warm grey-brown
+        });
+        
+        const building = new THREE.Mesh(geometry, material);
+        building.position.y = height / 2;
+        building.castShadow = true;
+        building.receiveShadow = true;
+        
+        group.add(building);
+        
+        // Add residential details
+        this.addResidentialDetails(group, width, height, depth);
+    }
+    
+    addGlassPanels(group, width, height, depth) {
+        const glassMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x6699cc,
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        // Large glass panels on front
+        const panelCount = Math.floor(height / 8);
+        for (let i = 0; i < panelCount; i++) {
+            const panelGeometry = new THREE.PlaneGeometry(width * 0.8, 6);
+            const panel = new THREE.Mesh(panelGeometry, glassMaterial);
+            panel.position.set(0, 4 + i * 8, depth/2 + 0.1);
+            group.add(panel);
+        }
+    }
+    
+    addModernDetails(group, width, height, depth) {
+        // Add entrance
+        const entranceGeometry = new THREE.BoxGeometry(3, 4, 1);
+        const entranceMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+        const entrance = new THREE.Mesh(entranceGeometry, entranceMaterial);
+        entrance.position.set(0, 2, depth/2 + 0.5);
+        group.add(entrance);
+        
+        // Add rooftop details
+        if (Math.random() < 0.4) {
+            const rooftopGeometry = new THREE.BoxGeometry(width * 0.3, 2, depth * 0.3);
+            const rooftopMaterial = new THREE.MeshLambertMaterial({ color: 0x555555 });
+            const rooftop = new THREE.Mesh(rooftopGeometry, rooftopMaterial);
+            rooftop.position.y = height + 1;
+            group.add(rooftop);
+        }
+    }
+    
+    addIndustrialDetails(group, width, height, depth) {
+        // Add pipes and industrial elements
+        const pipeCount = 2 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < pipeCount; i++) {
+            const pipeGeometry = new THREE.CylinderGeometry(0.3, 0.3, height * 0.6);
+            const pipeMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
+            const pipe = new THREE.Mesh(pipeGeometry, pipeMaterial);
+            pipe.position.set(
+                (Math.random() - 0.5) * width * 0.8,
+                height * 0.3,
+                (Math.random() - 0.5) * depth * 0.8
+            );
+            group.add(pipe);
+        }
+        
+        // Add industrial vents
+        const ventGeometry = new THREE.BoxGeometry(2, 1, 2);
+        const ventMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
+        const vent = new THREE.Mesh(ventGeometry, ventMaterial);
+        vent.position.set(0, height * 0.8 + 0.5, 0);
+        group.add(vent);
+    }
+    
+    addResidentialDetails(group, width, height, depth) {
+        // Add windows in a grid pattern
+        const windowMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xffffaa,
+            transparent: true,
+            opacity: 0.6
+        });
+        
+        const floors = Math.floor(height / 4);
+        for (let floor = 1; floor <= floors; floor++) {
+            const windowsPerFloor = Math.floor(width / 3);
+            for (let w = 0; w < windowsPerFloor; w++) {
+                const windowGeometry = new THREE.PlaneGeometry(1.2, 1.2);
                 const window = new THREE.Mesh(windowGeometry, windowMaterial);
                 window.position.set(
-                    -width/2 + 2 + w * 3,
-                    floor * 4,
-                    depth/2 + 0.1
+                    -width/2 + 1.5 + w * 3,
+                    floor * 3.5,
+                    depth/2 + 0.05
                 );
-                buildingGroup.add(window);
+                group.add(window);
             }
         }
         
-        // Add rooftop elements
-        if (Math.random() < 0.3) {
-            const antennaGeometry = new THREE.CylinderGeometry(0.1, 0.1, 3);
-            const antennaMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
-            const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
-            antenna.position.y = height + 1.5;
-            buildingGroup.add(antenna);
+        // Add balconies
+        if (Math.random() < 0.6) {
+            const balconyGeometry = new THREE.BoxGeometry(width * 0.8, 0.2, 1.5);
+            const balconyMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
+            const balcony = new THREE.Mesh(balconyGeometry, balconyMaterial);
+            balcony.position.set(0, height * 0.6, depth/2 + 1);
+            group.add(balcony);
         }
     }
     
@@ -762,6 +912,16 @@ class World {
     updateDynamicObjects(deltaTime) {
         // Update any dynamic world objects
         this.updateCollectibles(deltaTime);
+        this.updateNPCs(deltaTime);
+    }
+    
+    updateNPCs(deltaTime) {
+        // Update all NPCs
+        if (this.npcs) {
+            this.npcs.forEach(npc => {
+                npc.update(deltaTime);
+            });
+        }
     }
     
     updateCollectibles(deltaTime) {
@@ -798,11 +958,143 @@ class World {
         return nearest;
     }
     
+    generateTemples() {
+        console.log('🏛️ Generating elemental temples...');
+        
+        // Define temple positions in the four corners of the world
+        const templeData = [
+            { type: 'water', position: new THREE.Vector3(-200, 0, -200) },
+            { type: 'fire', position: new THREE.Vector3(200, 0, 200) },
+            { type: 'wind', position: new THREE.Vector3(-200, 0, 200) },
+            { type: 'lightning', position: new THREE.Vector3(200, 0, -200) }
+        ];
+        
+        this.temples = [];
+        
+        templeData.forEach(data => {
+            // Adjust position for terrain height
+            const terrainHeight = this.getTerrainHeightAt(data.position.x, data.position.z);
+            data.position.y = terrainHeight;
+            
+            // Create temple
+            const temple = new Temple(this.game, data.type, data.position);
+            this.temples.push(temple);
+            
+            // Add to collision groups
+            this.collisionGroups.static.push(temple.mesh);
+            
+            console.log(`🏛️ Generated ${data.type} temple at (${data.position.x}, ${data.position.z})`);
+        });
+        
+        console.log(`🏛️ Generated ${this.temples.length} temples`);
+    }
+    
+    generateShops() {
+        console.log('🏪 Generating shops...');
+        
+        // Define shop positions around the central area
+        const shopPositions = [
+            { x: -30, z: 0, type: 'weapons' },
+            { x: 30, z: 0, type: 'consumables' },
+            { x: 0, z: -30, type: 'equipment' },
+            { x: 0, z: 30, type: 'general' }
+        ];
+        
+        this.shops = [];
+        
+        shopPositions.forEach(data => {
+            const terrainHeight = this.getTerrainHeightAt(data.x, data.z);
+            const position = new THREE.Vector3(data.x, terrainHeight, data.z);
+            
+            const shop = new Shop(this.game, data.type, position);
+            this.shops.push(shop);
+            
+            // Add to collision groups
+            this.collisionGroups.static.push(shop.mesh);
+            
+            console.log(`🏪 Generated ${data.type} shop at (${data.x}, ${data.z})`);
+        });
+        
+        console.log(`🏪 Generated ${this.shops.length} shops`);
+    }
+    
+    generateNPCs() {
+        console.log('🍈 Generating NPCs...');
+        
+        this.npcs = [];
+        const npcCount = 25; // Reasonable number of NPCs
+        
+        for (let i = 0; i < npcCount; i++) {
+            const npc = new NPC(this.game);
+            
+            // Find valid position for NPC
+            let position;
+            let attempts = 0;
+            do {
+                position = this.getRandomCityPosition(150);
+                attempts++;
+            } while (!this.isValidNPCPosition(position) && attempts < 30);
+            
+            if (attempts < 30) {
+                // Adjust for terrain height
+                const terrainHeight = this.getTerrainHeightAt(position.x, position.z);
+                position.y = terrainHeight;
+                
+                npc.setPosition(position.x, position.y, position.z);
+                this.npcs.push(npc);
+                
+                // Add to scene
+                this.gameEngine.addToScene(npc.mesh);
+                
+                // Add to collision groups as dynamic objects
+                this.collisionGroups.dynamic.push(npc);
+            }
+        }
+        
+        console.log(`🍈 Generated ${this.npcs.length} NPCs`);
+    }
+    
+    isValidNPCPosition(position) {
+        const minDistance = 8;
+        
+        // Check distance from player spawn
+        if (position.length() < 20) return false;
+        
+        // Check distance from buildings
+        for (const building of this.buildings) {
+            if (position.distanceTo(building.position) < minDistance) return false;
+        }
+        
+        // Check distance from temples
+        if (this.temples) {
+            for (const temple of this.temples) {
+                if (position.distanceTo(temple.mesh.position) < 30) return false;
+            }
+        }
+        
+        // Check distance from shops
+        if (this.shops) {
+            for (const shop of this.shops) {
+                if (position.distanceTo(shop.mesh.position) < 15) return false;
+            }
+        }
+        
+        // Check distance from other NPCs
+        for (const npc of this.npcs) {
+            if (position.distanceTo(npc.position) < 5) return false;
+        }
+        
+        return true;
+    }
+    
     // Cleanup
     dispose() {
         // Clean up world resources
         this.buildings = [];
         this.environment = [];
+        this.temples = [];
+        this.shops = [];
+        this.npcs = [];
         this.collisionGroups = { static: [], dynamic: [], triggers: [] };
         this.spatialGrid.clear();
         

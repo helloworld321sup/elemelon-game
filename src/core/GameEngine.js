@@ -67,11 +67,37 @@ class GameEngine {
     initScene() {
         this.scene = new THREE.Scene();
         
-        // Set background to grey (Elemelon world is grey)
-        this.scene.background = new THREE.Color(0x808080); // Grey color
+        // Set background with gradient-like color (still grey but more interesting)
+        this.scene.background = new THREE.Color(0x6B7280); // Slightly bluish grey
         
-        // Add fog for atmosphere
-        this.scene.fog = new THREE.Fog(0x808080, 50, 300);
+        // Add fog for atmosphere - more subtle and atmospheric
+        this.scene.fog = new THREE.Fog(0x6B7280, 100, 600);
+        
+        // Add subtle environment mapping for better material reflections
+        this.createEnvironmentMap();
+    }
+    
+    createEnvironmentMap() {
+        // Create a simple environment map for better material reflections
+        const cubeTextureLoader = new THREE.CubeTextureLoader();
+        
+        // For now, we'll create a simple gradient environment
+        // In a full game, this would load actual skybox textures
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const context = canvas.getContext('2d');
+        
+        // Create gradient
+        const gradient = context.createLinearGradient(0, 0, 0, 256);
+        gradient.addColorStop(0, '#87CEEB'); // Sky blue
+        gradient.addColorStop(1, '#6B7280'); // Grey
+        
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, 256, 256);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        this.scene.environment = texture;
     }
     
     initCamera() {
@@ -114,30 +140,62 @@ class GameEngine {
     }
     
     initLighting() {
-        // Ambient light for overall illumination
-        this.ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+        // Ambient light for overall illumination - brighter for better visibility
+        this.ambientLight = new THREE.AmbientLight(0x606060, 0.5);
         this.scene.add(this.ambientLight);
         
         // Directional light (sun) for shadows and main lighting
-        this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        this.directionalLight.position.set(100, 100, 50);
+        this.directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        this.directionalLight.position.set(100, 200, 100);
         this.directionalLight.castShadow = true;
         
-        // Configure shadow properties
-        this.directionalLight.shadow.mapSize.width = 2048;
-        this.directionalLight.shadow.mapSize.height = 2048;
+        // Configure shadow properties for better quality
+        this.directionalLight.shadow.mapSize.width = 4096;
+        this.directionalLight.shadow.mapSize.height = 4096;
         this.directionalLight.shadow.camera.near = 0.1;
-        this.directionalLight.shadow.camera.far = 500;
-        this.directionalLight.shadow.camera.left = -100;
-        this.directionalLight.shadow.camera.right = 100;
-        this.directionalLight.shadow.camera.top = 100;
-        this.directionalLight.shadow.camera.bottom = -100;
+        this.directionalLight.shadow.camera.far = 800;
+        this.directionalLight.shadow.camera.left = -200;
+        this.directionalLight.shadow.camera.right = 200;
+        this.directionalLight.shadow.camera.top = 200;
+        this.directionalLight.shadow.camera.bottom = -200;
+        this.directionalLight.shadow.bias = -0.0001;
         
         this.scene.add(this.directionalLight);
         
         // Add hemisphere light for more natural lighting
-        const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x8B4513, 0.4);
+        const hemisphereLight = new THREE.HemisphereLight(0xB1E1FF, 0xB97A20, 0.6);
         this.scene.add(hemisphereLight);
+        
+        // Add additional fill lights for better scene illumination
+        this.addFillLights();
+    }
+    
+    addFillLights() {
+        // Add fill lights to reduce harsh shadows
+        const fillLight1 = new THREE.DirectionalLight(0xffffff, 0.3);
+        fillLight1.position.set(-100, 50, -100);
+        this.scene.add(fillLight1);
+        
+        const fillLight2 = new THREE.DirectionalLight(0xffffff, 0.2);
+        fillLight2.position.set(100, 50, -100);
+        this.scene.add(fillLight2);
+        
+        // Add subtle colored accent lights
+        const accentLight1 = new THREE.PointLight(0x4080ff, 0.5, 100);
+        accentLight1.position.set(-150, 30, -150);
+        this.scene.add(accentLight1);
+        
+        const accentLight2 = new THREE.PointLight(0xff4040, 0.5, 100);
+        accentLight2.position.set(150, 30, 150);
+        this.scene.add(accentLight2);
+        
+        const accentLight3 = new THREE.PointLight(0x80ff80, 0.5, 100);
+        accentLight3.position.set(-150, 30, 150);
+        this.scene.add(accentLight3);
+        
+        const accentLight4 = new THREE.PointLight(0xffff40, 0.5, 100);
+        accentLight4.position.set(150, 30, -150);
+        this.scene.add(accentLight4);
     }
     
     initPostProcessing() {

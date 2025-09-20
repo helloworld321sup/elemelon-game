@@ -32,8 +32,10 @@ class InputManager {
         this.isPointerLockEnabled = false;
         
         // Settings
-        this.mouseSensitivity = 1.0;
+        this.mouseSensitivity = 1.2; // Slightly more responsive
         this.invertY = false;
+        this.smoothingFactor = 0.1; // Mouse smoothing
+        this.mouseHistory = { x: 0, y: 0 }; // For smoothing
         
         // Key bindings from game settings
         this.keyBindings = null;

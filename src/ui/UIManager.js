@@ -481,21 +481,39 @@ class UIManager {
         if (!this.interactionPrompt || !object || !object.userData) return;
         
         let promptText = 'Press E to interact';
+        let promptIcon = '🔧';
         
         if (object.userData.isTemple) {
             promptText = `Press E to enter ${object.userData.type} temple`;
+            promptIcon = '🏛️';
         } else if (object.userData.isShop) {
             promptText = `Press E to enter ${object.userData.type} shop`;
+            promptIcon = '🏪';
         } else if (object.userData.isNPC) {
             promptText = 'Press E to talk';
+            promptIcon = '💬';
+        } else if (object.userData.type === 'token') {
+            promptText = 'Press E to collect';
+            promptIcon = '🪙';
+        } else if (object.userData.type === 'weapon') {
+            promptText = 'Press E to pick up';
+            promptIcon = '🔫';
         }
         
-        this.interactionPrompt.textContent = promptText;
+        this.interactionPrompt.innerHTML = `
+            <div class="prompt-content">
+                <span class="prompt-icon">${promptIcon}</span>
+                <span class="prompt-text">${promptText}</span>
+                <span class="prompt-key">E</span>
+            </div>
+        `;
         this.interactionPrompt.style.display = 'block';
+        this.interactionPrompt.classList.add('visible');
     }
     
     hideInteractionPrompt() {
         if (this.interactionPrompt) {
+            this.interactionPrompt.classList.remove('visible');
             this.interactionPrompt.style.display = 'none';
         }
     }

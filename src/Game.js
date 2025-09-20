@@ -151,14 +151,10 @@ class ElmelonGame {
     }
     
     async loadAudio() {
-        // Load audio files
-        await this.audioManager.loadAudioFiles([
-            { name: 'backgroundMusic', url: 'assets/audio/background.mp3' },
-            { name: 'menuMusic', url: 'assets/audio/menu.mp3' },
-            { name: 'footsteps', url: 'assets/audio/footsteps.mp3' },
-            { name: 'tokenCollect', url: 'assets/audio/token.mp3' },
-            { name: 'weaponFire', url: 'assets/audio/blaster.mp3' }
-        ]);
+        // Audio loading disabled temporarily to prevent errors
+        // TODO: Add actual audio files and re-enable
+        console.log('🔇 Audio loading disabled - no audio files available');
+        return Promise.resolve();
     }
     
     async loadGameData() {
